@@ -3,7 +3,7 @@
 ```
 bastion_IP = 35.206.191.187
 someinternalhost_IP = 10.132.0.3
-testapp_IP = http://35.204.237.177
+testapp_IP = 35.204.237.177
 testapp_port = 9292
 ```
 
