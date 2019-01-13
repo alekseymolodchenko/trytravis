@@ -5,8 +5,6 @@
     "gcp_machine_type": "f1-micro"
   },
 
-  "sensitive-variables": ["gcp_project_id", "gcp_source_image_family"],
-
   "builders": [{
     "type": "googlecompute",
     "project_id": "{{user `gcp_project_id`}}",
