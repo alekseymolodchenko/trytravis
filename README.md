@@ -192,12 +192,12 @@ ubuntu16.json
 }
 ```
 
-Билд
+Собрать образ reddit-base
 ```
 packer build -var-file=variables.json ubuntu16.json
 ```
 
-#### 2. Создание образа immutable reddit-full на основании reddit-full
+#### 2. Создание образа immutable reddit-full на основании reddit-base
 
 immutable.json
 ```
@@ -240,7 +240,7 @@ immutable.json
 }
 ```
 
-Билд
+Собрать образ reddit-full
 ```
 packer build \ 
   -var 'gcp_project_id=infra-1234567' \
