@@ -192,4 +192,60 @@ ubuntu16.json
 }
 ```
 
+Билд
+```
+packer build -var-file=variables.json ubuntu16.json
+```
+
+#### 2. Создание образа immutable reddit-full на основании reddit-full
+
+immutable.json
+```
+{
+  "variables": {
+    "gcp_project_id": null,
+    "gcp_source_image_family": null,
+    "gcp_machine_type": "f1-micro"
+  },
+
+  "sensitive-variables": ["gcp_project_id", "gcp_source_image_family"],
+
+  "builders": [{
+    "type": "googlecompute",
+    "project_id": "{{user `gcp_project_id`}}",
+    "image_name": "reddit-full-{{timestamp}}",
+    "image_family": "reddit-full",
+    "image_description": "Reddit App Immutable Image",
+    "source_image_family": "reddit-base",
+    "zone": "europe-west1-b",
+    "ssh_username": "appuser",
+    "machine_type": "{{user `gcp_machine_type`}}",
+    "network": "default",
+    "disk_size": "10",
+    "disk_type": "pd-standard",
+    "tags": "reddit-immutable,reddit-image"
+  }],
+
+  "provisioners": [{
+      "type": "file",
+      "source": "files/redditapp.service",
+      "destination": "/tmp/redditapp.service"
+    },
+    {
+      "type": "shell",
+      "script": "files/deploy_app.sh",
+      "execute_command": "sudo {{.Path}}"
+    }
+  ]
+}
+```
+
+Билд
+```
+packer build \ 
+  -var 'gcp_project_id=infra-1234567' \
+  -var 'gcp_source_image_family=reddit-full' \
+  immutable.json
+```
+
 
