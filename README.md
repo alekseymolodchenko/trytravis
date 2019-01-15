@@ -94,13 +94,13 @@ gcloud compute instances create reddit-app\
   --restart-on-failure
 ```
 
-Просмотреть список созданых инстансов можно команой
+Просмотреть список созданых инстансов можно командой
 
 ```
 gcloud compute instances list
 ```
 
-### 2. Создание истанса с использованием gcloud с ключем startup-script
+#### 2. Создание истанса с использованием gcloud с ключем startup-script
 
 ```
 gcloud compute instances create reddit-app \
@@ -123,7 +123,7 @@ gcloud compute instances create reddit-app \
     puma -d'
 ```
 
-### 3. Создание истанса с использованием gcloud с ключем startup-script-url
+#### 3. Создание истанса с использованием gcloud с ключем startup-script-url
 ```
 gcloud compute instances create reddit-app \
   --boot-disk-size=10GB \
@@ -136,7 +136,7 @@ gcloud compute instances create reddit-app \
   --metadata startup-script-url=https://raw.githubusercontent.com/Otus-DevOps-2018-11/alekseymolodchenko_infra/master/startup.sh
 ```
 
-### 4. Добавление правила default-puma-server с использование gcloud 
+#### 4. Добавление правила default-puma-server с использование gcloud 
 
 ```
 gcloud compute firewall-rules create puma-default-server --allow tcp:9292 \
@@ -145,8 +145,107 @@ gcloud compute firewall-rules create puma-default-server --allow tcp:9292 \
     --target-tags="puma-server"
 ```
 
-Просмотреть список правил firewall'a можно команой
+Просмотреть список правил firewall'a можно командой
 
 ```
 gcloud compute firewall-rules list
 ```
+
+## Работа с HashiCorp Packer 
+#### 1. Создание образа reddit-base
+
+ubuntu16.json
+```
+{
+  "variables": {
+    "gcp_project_id": null,
+    "gcp_source_image_family": null,
+    "gcp_machine_type": "f1-micro"
+  },
+
+  "sensitive-variables": ["gcp_project_id", "gcp_source_image_family"],
+
+  "builders": [{
+    "type": "googlecompute",
+    "project_id": "{{user `gcp_project_id`}}",
+    "image_name": "reddit-base-{{timestamp}}",
+    "image_family": "reddit-base",
+    "source_image_family": "{{user `gcp_source_image_family`}}",
+    "image_description": "Reddit App Base Image",
+    "machine_type": "{{user `gcp_machine_type`}}",
+    "disk_size": "10",
+    "disk_type": "pd-standard",
+    "network": "default",
+    "tags": "reddit-base,reddit-image",
+    "zone": "europe-west1-b",
+    "ssh_username": "appuser"
+  }],
+
+  "provisioners": [{
+    "type": "shell",
+    "scripts": [
+      "scripts/install_ruby.sh",
+      "scripts/install_mongodb.sh"
+    ],
+    "execute_command": "sudo {{.Path}}"
+  }]
+}
+```
+
+Собрать образ reddit-base
+```
+packer build -var-file=variables.json ubuntu16.json
+```
+
+#### 2. Создание образа immutable reddit-full на основании reddit-base
+
+immutable.json
+```
+{
+  "variables": {
+    "gcp_project_id": null,
+    "gcp_source_image_family": null,
+    "gcp_machine_type": "f1-micro"
+  },
+
+  "sensitive-variables": ["gcp_project_id", "gcp_source_image_family"],
+
+  "builders": [{
+    "type": "googlecompute",
+    "project_id": "{{user `gcp_project_id`}}",
+    "image_name": "reddit-full-{{timestamp}}",
+    "image_family": "reddit-full",
+    "image_description": "Reddit App Immutable Image",
+    "source_image_family": "reddit-base",
+    "zone": "europe-west1-b",
+    "ssh_username": "appuser",
+    "machine_type": "{{user `gcp_machine_type`}}",
+    "network": "default",
+    "disk_size": "10",
+    "disk_type": "pd-standard",
+    "tags": "reddit-immutable,reddit-image"
+  }],
+
+  "provisioners": [{
+      "type": "file",
+      "source": "files/redditapp.service",
+      "destination": "/tmp/redditapp.service"
+    },
+    {
+      "type": "shell",
+      "script": "files/deploy_app.sh",
+      "execute_command": "sudo {{.Path}}"
+    }
+  ]
+}
+```
+
+Собрать образ reddit-full
+```
+packer build \ 
+  -var 'gcp_project_id=infra-1234567' \
+  -var 'gcp_source_image_family=reddit-full' \
+  immutable.json
+```
+
+
