@@ -17,5 +17,9 @@ variable disk_image {
 
 variable "private_key_path" {
   description = "Path to the private key used for ssh access"
-  default     = "~/.ssh/gcp_appuser"
+}
+
+variable "zone" {
+  description = "Zone"
+  default = "europe-west1-b"
 }
