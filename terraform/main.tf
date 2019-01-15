@@ -19,6 +19,10 @@ resource "google_compute_instance" "app" {
     }
   }
 
+  metadata {
+    ssh-keys = "appuser:${file("~/.ssh/gcp_appuser.pub")}"
+  }
+
   # определение сетевого интерфейса
   network_interface {
     # сеть, к которой присоединить данный интерфейс
@@ -26,10 +30,6 @@ resource "google_compute_instance" "app" {
 
     # использовать ephemeral IP для доступа из Интернет
     access_config {}
-  }
-
-  metadata {
-    ssh-keys = "appuser:${file("~/.ssh/gcp_appuser.pub")}"
   }
 
   connection {
