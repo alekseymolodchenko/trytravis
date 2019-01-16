@@ -6,7 +6,11 @@ provider "google" {
 
 resource "google_compute_project_metadata" "ssh_keys" {
   metadata {
-    ssh-keys = "appuser1:${file(var.public_key_path)}"
+    ssh-keys = <<EOF
+      ssh-keys = "appuser1:${file(var.public_key_path)}"
+      ssh-keys = "appuser2:${file(var.public_key_path)}"
+      ssh-keys = "appuser3:${file(var.public_key_path)}"
+EOF
   }
 }
 
