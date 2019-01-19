@@ -284,6 +284,57 @@ resource "google_compute_http_health_check" "default" {
   unhealthy_threshold = 5
 }
 ```
+#### 3. Добавление добавление параметра count в ресурс app
 
+```
+resource "google_compute_instance" "app" {
+  count = "${var.app_count}"
+  name = "${format("reddit-app%02d", count.index+1)}"
+  machine_type = "g1-small"
+  zone         = "${var.zone}"
 
+  tags = ["reddit-app"]
 
+  # определение загрузочного диска
+  boot_disk {
+    initialize_params {
+      image = "${var.disk_image}"
+    }
+  }
+
+  metadata {
+    ssh-keys = "appuser:${file(var.public_key_path)}"
+  }
+
+  # определение сетевого интерфейса
+  network_interface {
+    # сеть, к которой присоединить данный интерфейс
+    network = "default"
+
+    # использовать ephemeral IP для доступа из Интернет
+    access_config {}
+  }
+
+  connection {
+    type        = "ssh"
+    user        = "appuser"
+    agent       = false
+    private_key = "${file(var.private_key_path)}"
+  }
+
+  provisioner "file" {
+    source      = "files/puma.service"
+    destination = "/tmp/puma.service"
+  }
+
+  provisioner "remote-exec" {
+    script = "files/deploy.sh"
+  }
+}
+```
+
+#### 4. Удаление ресурсов
+
+```
+terraform destroy
+```

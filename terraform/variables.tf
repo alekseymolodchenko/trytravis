@@ -23,3 +23,9 @@ variable "zone" {
   description = "Zone"
   default     = "europe-west1-b"
 }
+
+variable "app_count" {
+  description = "Application resource count"  
+  default = 1
+}
+
