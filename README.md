@@ -248,4 +248,93 @@ packer build \
   immutable.json
 ```
 
+## Работа с HashiCorp Terrarom 
+#### 1. Добавление пользователя appuser_web 
 
+```
+После применения terraform apply пользователь будет удален.
+Это связано с тем, что terraform использует декларативный подход для описания инфраструктуры 
+и приводит состояние инфраструкруты к виду описаному в файлах конфигурации.
+```
+
+#### 2. Добавление балансировщика
+
+lb.tf
+```
+resource "google_compute_forwarding_rule" "default" {
+  name                  = "reddit-app"
+  description           = "reddit app forwarding rule"
+  port_range            = "9292"
+  target                = "${google_compute_target_pool.default.self_link}"
+  load_balancing_scheme = "EXTERNAL"
+}
+
+resource "google_compute_target_pool" "default" {
+  name          = "reddit-app-instances"
+  description   = "reddit app instance pool"
+  instances     = ["${google_compute_instance.app.*.self_link}"]
+  health_checks = ["${google_compute_http_health_check.default.name}"]
+}
+
+resource "google_compute_http_health_check" "default" {
+  name                = "health-check-reddit-app"
+  port                = 9292
+  check_interval_sec  = 10
+  timeout_sec         = 5
+  unhealthy_threshold = 5
+}
+```
+#### 3. Добавление добавление параметра count в ресурс app
+
+```
+resource "google_compute_instance" "app" {
+  count = "${var.app_count}"
+  name = "${format("reddit-app%02d", count.index+1)}"
+  machine_type = "g1-small"
+  zone         = "${var.zone}"
+
+  tags = ["reddit-app"]
+
+  # определение загрузочного диска
+  boot_disk {
+    initialize_params {
+      image = "${var.disk_image}"
+    }
+  }
+
+  metadata {
+    ssh-keys = "appuser:${file(var.public_key_path)}"
+  }
+
+  # определение сетевого интерфейса
+  network_interface {
+    # сеть, к которой присоединить данный интерфейс
+    network = "default"
+
+    # использовать ephemeral IP для доступа из Интернет
+    access_config {}
+  }
+
+  connection {
+    type        = "ssh"
+    user        = "appuser"
+    agent       = false
+    private_key = "${file(var.private_key_path)}"
+  }
+
+  provisioner "file" {
+    source      = "files/puma.service"
+    destination = "/tmp/puma.service"
+  }
+
+  provisioner "remote-exec" {
+    script = "files/deploy.sh"
+  }
+}
+```
+
+#### 4. Удаление ресурсов
+
+```
+terraform destroy
+```
