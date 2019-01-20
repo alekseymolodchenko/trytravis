@@ -25,7 +25,6 @@ variable "zone" {
 }
 
 variable "app_count" {
-  description = "Application resource count"  
-  default = 1
+  description = "Application resource count"
+  default     = 1
 }
-

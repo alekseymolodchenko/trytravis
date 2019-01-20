@@ -11,8 +11,8 @@ resource "google_compute_project_metadata" "ssh_keys" {
 }
 
 resource "google_compute_instance" "app" {
-  count = "${var.app_count}"
-  name = "${format("reddit-app%02d", count.index+1)}"
+  count        = "${var.app_count}"
+  name         = "${format("reddit-app%02d", count.index+1)}"
   machine_type = "g1-small"
   zone         = "${var.zone}"
 
@@ -72,4 +72,16 @@ resource "google_compute_firewall" "firewall_puma" {
 
   # Правило применимо для инстансов с перечисленными тэгами
   target_tags = ["reddit-app"]
+}
+
+resource "google_compute_firewall" "firewall_ssh" {
+  name    = "default-allow-ssh"
+  network = "default"
+
+  allow {
+    protocol = "tcp"
+    ports    = ["22"]
+  }
+
+  source_ranges = ["0.0.0.0/0"]
 }
