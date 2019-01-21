@@ -1,6 +1,6 @@
 resource "google_compute_instance" "app" {
   name         = "reddit-app"
-  machine_type = "${var.pp_machine_type}"
+  machine_type = "${var.app_machine_type}"
   zone         = "${var.zone}"
   tags         = ["reddit-app"]
 
