@@ -11,7 +11,7 @@ variable db_disk_image {
   default     = "reddit-db"
 }
 
-variable app_machine_type {
+variable db_machine_type {
   description = "Machine type for application instance"
   default     = "g1-small"
 }
