@@ -4,14 +4,11 @@ provider "google" {
   region  = "${var.region}"
 }
 
-module "storage-bucket" {
-  source  = "SweetOps/storage-bucket/google"
-  version = "0.1.1"
-
-  # Имена поменяйте на другие
-  name = ["otus-storage-bucket-98123", "otus-storage-bucket-9812323"]
+resource "google_storage_bucket" "storage-bucket" {
+  name = "terraform-2-otus-storage-state-bucket"
 }
 
-output storage-bucket_url {
-  value = "${module.storage-bucket.url}"
+resource "google_storage_bucket_acl" "terraform-2-otus-storage-state-bucket-acl" {
+  bucket         = "${google_storage_bucket.storage-bucket.name}"
+  predefined_acl = "publicreadwrite"
 }
