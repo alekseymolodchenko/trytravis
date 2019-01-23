@@ -1,5 +1,6 @@
 resource "google_compute_instance" "app" {
-  name         = "reddit-app"
+  count        = "${var.app_count}"
+  name         = "reddit-app-${var.env}-${format("%02d", count.index+1)}"
   machine_type = "${var.app_machine_type}"
   zone         = "${var.zone}"
   tags         = ["reddit-app"]
@@ -30,21 +31,21 @@ resource "google_compute_instance" "app" {
   }
 
   provisioner "file" {
-    source      = "files/puma.service"
+    source      = "../modules/app/files/puma.service"
     destination = "/tmp/puma.service"
   }
 
-  provisioner "remote-exec" {
-    script = "files/deploy.sh"
+  provisioner "file" {
+    source      = "../modules/app/files/deploy.sh"
+    destination = "/tmp/deploy.sh"
   }
 
-	provisioner "remote-exec" {
+  provisioner "remote-exec" {
     inline = [
-      "DATABASE_URL=${var.db_external_ip}",
+      "chmod +x /tmp/deploy.sh",
+      "/tmp/deploy.sh ${var.db_address}"
     ]
   }
-
-
 }
 
 resource "google_compute_address" "app_ip" {
