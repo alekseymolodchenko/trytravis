@@ -1,4 +1,4 @@
-## Remotes 
+## Remotes
 
 ```
 bastion_IP = 35.206.191.187
@@ -80,7 +80,7 @@ chmod +x ~/setupvpn.sh
 * Добавляем Сервер
 * Привязываем сервер к организации
 
-## Работа с CGP 
+## Работа с CGP
 #### 1. Создание истанса с использованием gcloud
 
 ```
@@ -136,7 +136,7 @@ gcloud compute instances create reddit-app \
   --metadata startup-script-url=https://raw.githubusercontent.com/Otus-DevOps-2018-11/alekseymolodchenko_infra/master/startup.sh
 ```
 
-#### 4. Добавление правила default-puma-server с использование gcloud 
+#### 4. Добавление правила default-puma-server с использование gcloud
 
 ```
 gcloud compute firewall-rules create puma-default-server --allow tcp:9292 \
@@ -151,7 +151,7 @@ gcloud compute firewall-rules create puma-default-server --allow tcp:9292 \
 gcloud compute firewall-rules list
 ```
 
-## Работа с HashiCorp Packer 
+## Работа с HashiCorp Packer
 #### 1. Создание образа reddit-base
 
 ubuntu16.json
@@ -242,18 +242,18 @@ immutable.json
 
 Собрать образ reddit-full
 ```
-packer build \ 
+packer build \
   -var 'gcp_project_id=infra-1234567' \
   -var 'gcp_source_image_family=reddit-full' \
   immutable.json
 ```
 
-## Работа с HashiCorp Terrarom 
-#### 1. Добавление пользователя appuser_web 
+## Работа с HashiCorp Terrarom
+#### 1. Добавление пользователя appuser_web
 
 ```
 После применения terraform apply пользователь будет удален.
-Это связано с тем, что terraform использует декларативный подход для описания инфраструктуры 
+Это связано с тем, что terraform использует декларативный подход для описания инфраструктуры
 и приводит состояние инфраструкруты к виду описаному в файлах конфигурации.
 ```
 
@@ -338,3 +338,79 @@ resource "google_compute_instance" "app" {
 ```
 terraform destroy
 ```
+
+#### 5. Сохранение state во внешнем бекенде для stage и prod окружения
+
+stage/backend.tf
+```
+terraform {
+  backend "gcs" {
+    bucket = "terraform-2-otus-storage-state-bucket"
+    prefix = "stage"
+  }
+}
+```
+
+prod/backend.tf
+```
+terraform {
+  backend "gcs" {
+    bucket = "terraform-2-otus-storage-state-bucket"
+    prefix = "prod"
+  }
+}
+```
+
+#### 6. Добавление provisioner для деплоя приложения
+
+modules/app/main.tf
+```
+connection {
+    type        = "ssh"
+    user        = "appuser"
+    agent       = false
+    private_key = "${file(var.private_key_path)}"
+  }
+
+  provisioner "file" {
+    source      = "../modules/app/files/puma.service"
+    destination = "/tmp/puma.service"
+  }
+
+  provisioner "file" {
+    source      = "../modules/app/files/deploy.sh"
+    destination = "/tmp/deploy.sh"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "chmod +x /tmp/deploy.sh",
+      "/tmp/deploy.sh ${var.db_address}"
+    ]
+  }
+```
+
+modules/db/main.tf
+```
+connection {
+    type        = "ssh"
+    user        = "appuser"
+    agent       = false
+    private_key = "${file(var.private_key_path)}"
+  }
+
+	provisioner "file" {
+    source      = "../modules/db/files/deploy.sh"
+    destination = "/tmp/deploy.sh"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "chmod +x /tmp/deploy.sh",
+      "sudo /tmp/deploy.sh ${self.network_interface.0.address}"
+    ]
+  }
+```
+
+Скрипты размещаем в директории files модулей
+
