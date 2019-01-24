@@ -1,0 +1,1 @@
+appserver ansible_host=34.76.71.112 ansible_user=appuser ansible_private_key_file=~/.ssh/gcp_appuser
