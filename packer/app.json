@@ -8,15 +8,15 @@
   "builders": [{
     "type": "googlecompute",
     "project_id": "{{user `gcp_project_id`}}",
-    "image_name": "reddit-base-{{timestamp}}",
-    "image_family": "reddit-base",
+    "image_name": "reddit-app-{{timestamp}}",
+    "image_family": "reddit-app",
     "source_image_family": "{{user `gcp_source_image_family`}}",
-    "image_description": "Reddit App Base Image",
+    "image_description": "Reddit App Image",
     "machine_type": "{{user `gcp_machine_type`}}",
     "disk_size": "10",
     "disk_type": "pd-standard",
     "network": "default",
-    "tags": "reddit-base,reddit-image",
+    "tags": "reddit-app-image",
     "zone": "europe-west1-b",
     "ssh_username": "appuser"
   }],
@@ -24,8 +24,7 @@
   "provisioners": [{
     "type": "shell",
     "scripts": [
-      "scripts/install_ruby.sh",
-      "scripts/install_mongodb.sh"
+      "scripts/install_ruby.sh"
     ],
     "execute_command": "sudo {{.Path}}"
   }]
