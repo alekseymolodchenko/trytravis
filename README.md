@@ -414,3 +414,71 @@ connection {
 
 Скрипты размещаем в директории files модулей
 
+## Управление конфигурациями при помощи Ansible
+
+#### 1. Cоздание playbook для клонирования репозитория
+
+clone.yml
+```
+```
+
+
+#### 2. Использование dynamic inventory
+
+Файл inventory в формате json
+
+inventory.json
+```
+{
+	"app": {
+		"hosts": ["34.76.71.112"]
+	},
+	"db": {
+		"hosts": ["35.195.164.228"]
+	}
+}
+```
+
+Скрипт обработки inventory в формате json inventory.py
+
+files/inventory.py
+```
+#!/usr/bin/env python
+import os
+
+__location__ = os.path.realpath(
+    os.path.join(os.getcwd(), os.path.dirname(__file__)))
+
+with open(os.path.join(__location__, "../inventory.json")) as f:
+    print f.read()
+```
+
+В файле конфигурации подключаем нужные плагины и указывам что нудно использовать скрипт для inventory
+
+ansible.cfg
+```
+[defaults]
+inventory = ./files/inventory.py
+
+...
+
+[inventory]
+enable_plugins = host_list, script, yaml, ini
+```
+
+Проверка
+
+```
+git:(ansible-1*) $ ansible all -m ping
+
+34.76.71.112 | SUCCESS => {
+    "changed": false,
+    "failed": false,
+    "ping": "pong"
+}
+35.195.164.228 | SUCCESS => {
+    "changed": false,
+    "failed": false,
+    "ping": "pong"
+}
+```
