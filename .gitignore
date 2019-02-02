@@ -7,3 +7,4 @@ variables.json
 .editorconfig
 .vscode/
 *.retry
+.gce_cache
