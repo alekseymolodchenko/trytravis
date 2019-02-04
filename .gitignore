@@ -6,3 +6,5 @@ variables.json
 .terraform/
 .editorconfig
 .vscode/
+*.retry
+.gce_cache

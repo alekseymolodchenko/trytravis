@@ -482,3 +482,53 @@ git:(ansible-1*) $ ansible all -m ping
     "ping": "pong"
 }
 ```
+
+#### 3. Добавляем скрипт gce_googleapiclient для dynamic inventory
+
+ansible.cfg
+```
+[defaults]
+...
+inventory = inventory = gce_googleapiclient.py
+...
+```
+
+Проверка
+```
+ansible all -i gce_googleapiclient.py -m ping
+reddit-db-stage-01 | SUCCESS => {
+    "changed": false,
+    "failed": false,
+    "ping": "pong"
+}
+reddit-app-stage-01 | SUCCESS => {
+    "changed": false,
+    "failed": false,
+    "ping": "pong"
+}
+```
+
+Для просмотра списка хостов выполняем команду
+```
+./gce_googleapiclient.py --list
+```
+
+#### 4. Использование ansible в качестве provisioner
+
+packer/app.json
+```
+"provisioners": [{
+    "type": "ansible",
+    "playbook_file": "ansible/packer_app.yml"
+    }
+  ]
+```
+
+packer/db.json
+```
+"provisioners": [{
+    "type": "ansible",
+    "playbook_file": "ansible/packer_db.yml"
+    }
+  ]
+```
