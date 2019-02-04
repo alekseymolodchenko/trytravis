@@ -1,8 +1,8 @@
 - name: Configure application
-  hosts: app
+  hosts: tag_reddit-app
   become: true
   vars:
-   db_host: 10.132.15.229
+   db_host: "{{ hostvars['reddit-db-stage-01']['gce_private_ip']}}"
   tasks:
     - name: Add unit file for Puma
       copy:
