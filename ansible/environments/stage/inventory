@@ -1,5 +1,5 @@
-[tag_reddit-app]
+[app]
 appserver		ansible_host=34.76.71.112
 
-[tag_reddit-db]
+[db]
 dbserver 		ansible_host=35.205.95.9

@@ -1,5 +1,5 @@
 - name: Deploy application
-  hosts: tag_reddit-app
+  hosts: app
   tags: deploy-tag
   become: true
   tasks:
