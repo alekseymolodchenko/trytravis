@@ -9,3 +9,4 @@ variables.json
 *.retry
 .gce_cache
 jdauphant.nginx
+vault.key
