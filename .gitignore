@@ -8,3 +8,4 @@ variables.json
 .vscode/
 *.retry
 .gce_cache
+jdauphant.nginx
