@@ -15,7 +15,6 @@
       bundler:
         state: present
         chdir: /home/appuser/reddit
-
   handlers:
-  - name: restart mongod
-    service: name=mongod state=restarted
+  - name: reload puma
+    systemd: name=puma state=restarted
