@@ -37,3 +37,18 @@ resource "google_compute_firewall" "firewall_mongo" {
   target_tags = ["reddit-db"]
   source_tags = ["reddit-app"]
 }
+
+resource "google_compute_firewall" "firewall_http" {
+  name = "allow-http-default"
+
+  network = "default"
+
+  allow {
+    protocol = "tcp"
+    ports    = ["80"]
+  }
+
+  source_ranges = "${var.source_ranges}"
+
+  target_tags = ["reddit-app"]
+}
