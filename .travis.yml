@@ -14,14 +14,9 @@ script:
 - pip install ansible-lint --user
 - packer validate -var-file=packer/variables.json.example packer/app.json
 - packer validate -var-file=packer/variables.json.example packer/db.json
-- cd packer
-- packer validate -var-file=variables.json.example immutable.json
-- packer validate -var-file=variables.json.example ubuntu16.json
 - ansible-lint ansible/playbooks/site.yml
-- ansible-lint ansible/playbooks/site_dynamic.yml
-
 - ssh-keygen -f ~/.ssh/appuser -q -N ""
-- cd ../terraform/prod
+- cd terraform/prod
 - cp terraform.tfvars.example terraform.tfvars
 - terraform get
 - terraform init

@@ -11,10 +11,13 @@
       tags: deploy-tag
       notify: reload puma
 
-    - name: Bundle install
+
+    - name: Bundler install
       bundler:
         state: present
         chdir: /home/appuser/reddit
+      register: bundler_install_result # https://docs.ansible.com/ansible-lint/rules/default_rules.html E405
+      until: bundler_install_result is succeeded
   handlers:
   - name: reload puma
     systemd: name=puma state=restarted
