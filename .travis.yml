@@ -1,3 +1,4 @@
+---
 dist: trusty
 sudo: required
 language: bash
@@ -8,9 +9,9 @@ script:
 - wget -P /tmp https://releases.hashicorp.com/terraform/0.11.11/terraform_0.11.11_linux_amd64.zip
 - wget -P /tmp https://releases.hashicorp.com/packer/1.3.4/packer_1.3.4_linux_amd64.zip
 - wget -P /tmp https://github.com/wata727/tflint/releases/download/v0.7.3/tflint_linux_amd64.zip
-- sudo unzip -o -d  /usr/local/bin/ /tmp/terraform_0.11.11_linux_amd64.zip
-- sudo unzip -o -d  /usr/local/bin/ /tmp/packer_1.3.4_linux_amd64.zip
-- sudo unzip -o -d  /usr/local/bin/ /tmp/tflint_linux_amd64.zip
+- sudo unzip -o -d /usr/local/bin/ /tmp/terraform_0.11.11_linux_amd64.zip
+- sudo unzip -o -d /usr/local/bin/ /tmp/packer_1.3.4_linux_amd64.zip
+- sudo unzip -o -d /usr/local/bin/ /tmp/tflint_linux_amd64.zip
 - pip install ansible-lint --user
 - packer validate -var-file=packer/variables.json.example packer/app.json
 - packer validate -var-file=packer/variables.json.example packer/db.json

@@ -1,3 +1,4 @@
+---
 - name: Deploy application
   hosts: tag_reddit-app
   tags: deploy-tag
