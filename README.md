@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/Otus-DevOps-2018-11/alekseymolodchenko_infra.svg?branch=master)](https://travis-ci.com/Otus-DevOps-2018-11/alekseymolodchenko_infra)
+
 ## Remotes
 
 ```
