@@ -1,5 +1,4 @@
 docker images > docker-monolith/docker-1.log
-
 REPOSITORY                           TAG                 IMAGE ID            CREATED             SIZE
 alekseymolodchenko/ubuntu-tmp-file   latest              15a1dd033791        14 seconds ago      117MB
 ubuntu                               16.04               7e87e2b3bf7a        2 weeks ago         117MB
@@ -12,3 +11,10 @@ hello-world                          latest              fce289e99eb9        5 w
 - Контейнеер имеет "верхний" слой для записи;
 - При удалении контейнера "верхний" слой удаляется, "нижние" слои остаются неизменными;
 - Во время запуска контейнера docker-engine инициализирует различные параметры (имя контейнера, его идентификатор, сеть, лимиты ресурсов и т.д).
+
+docker system df >> docker-monolith/docker-1.log
+TYPE                TOTAL               ACTIVE              SIZE                RECLAIMABLE
+Images              3                   2                   117.2MB             117.2MB (99%)
+Containers          3                   1                   79B                 30B (37%)
+Local Volumes       20                  0                   265.5MB             265.5MB (100%)
+Build Cache         0                   0                   0B                  0B
