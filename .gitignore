@@ -1,0 +1,14 @@
+.editorconfig
+.vscode/
+*.retry
+.gce_cache
+vault.key
+.vagrant/
+*.log
+*.pyc
+.molecule
+.cache
+.pytest_cache
+.venv
+.yamllint
+.sonarlint
