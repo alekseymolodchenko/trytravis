@@ -2,7 +2,7 @@ language: python
 python:
 - '3.6'
 install:
-- pip install ansible==2.3.0 molecule apache-libcloud
+- pip install -r requirements.txt
 script:
 - molecule --debug test
 after_script:
