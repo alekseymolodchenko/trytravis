@@ -1,0 +1,4 @@
+# molecule
+molecule>=2.6
+apache-libcloud>=2.1.0
+
