@@ -3,7 +3,6 @@
 *.retry
 .gce_cache
 vault.key
-.vagrant/
 *.log
 *.pyc
 .molecule
@@ -12,3 +11,6 @@ vault.key
 .venv
 .yamllint
 .sonarlint
+credentials.json
+google_compute_engine
+secrets.tar
