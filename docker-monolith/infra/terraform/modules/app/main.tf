@@ -1,9 +1,3 @@
-provider "google" {
-  version = "1.4.0"
-  project = "${var.project}"
-  region  = "${var.region}"
-}
-
 resource "google_compute_instance" "app" {
   count        = "${var.app_count}"
   name         = "reddit-app-docker-${format("%02d", count.index+1)}"

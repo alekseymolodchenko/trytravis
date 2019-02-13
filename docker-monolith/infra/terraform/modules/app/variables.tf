@@ -1,13 +1,5 @@
-variable project {
-  description = "Project ID"
-}
-
 variable zone {
   description = "Zone"
-}
-variable "region" {
-  description = "Region"
-  default     = "europe-west1"
 }
 
 variable app_count {
@@ -31,9 +23,4 @@ variable app_disk_image {
 variable app_machine_type {
   description = "Machine type for application instance"
   default     = "n1-standard-1"
-}
-
-variable source_ranges {
-  description = "Allowed IP addresses"
-  default     = ["0.0.0.0/0"]
 }
