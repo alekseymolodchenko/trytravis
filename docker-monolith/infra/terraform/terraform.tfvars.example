@@ -1,0 +1,6 @@
+project = "docker-231608"
+public_key_path = "~/.ssh/gcp_appuser.pub"
+private_key_path = "~/.ssh/gcp_appuser"
+app_disk_image = "reddit-app-docker"
+source_ranges = ["0.0.0.0/0"]
+app_count = 1
