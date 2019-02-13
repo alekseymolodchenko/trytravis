@@ -4,6 +4,7 @@
 ## HW #12 - знакомство с Docker
 <details>
   <summary>Результаты</summary>
+
 * Узнать версию docker
 
 docker version
