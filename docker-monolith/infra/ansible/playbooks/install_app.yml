@@ -1,6 +1,6 @@
 ---
 - name: Install Reddit Application
-  hosts: all
+  hosts: tag_reddit-app-docker
   become: true
   tasks:
   - name: Run Reddit Application Container

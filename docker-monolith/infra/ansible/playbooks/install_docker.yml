@@ -14,7 +14,12 @@
 
   - name: Install list of packages
     apt:
-      name: ["apt-transport-https", "ca-certificates", "build-essential", "curl", "software-properties-common", "docker-ce"]
+      name: ["apt-transport-https", "ca-certificates", "build-essential", "curl", "software-properties-common", "docker-ce", "python-pip"]
       update_cache: yes
       state: present
+    tags: install
+
+  - name: Install Docker-py
+    pip:
+      name: docker-py
     tags: install
