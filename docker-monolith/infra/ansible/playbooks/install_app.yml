@@ -1,0 +1,12 @@
+---
+- name: Install Reddit Application
+  hosts: tag_reddit-app-docker
+  become: true
+  tasks:
+  - name: Run Reddit Application Container
+    docker_container:
+      name: reddit
+      image: amolodchenko/otus-reddit:1.1
+      ports:
+        - "9292:9292"
+    tags: app

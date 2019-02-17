@@ -2,8 +2,10 @@
 ---
 
 ## HW #12 - знакомство с Docker
+
 <details>
   <summary>Результаты</summary>
+
 * Узнать версию docker
 
 docker version
@@ -150,3 +152,202 @@ Build Cache         0                   0                   0B                  
 ```
 </details>
 
+## HW #13 - Docker контейнеры
+
+<details>
+  <summary>Результаты</summary>
+
+### Создан Dockerfile в директории infra
+
+<details><summary>Cодержимое</summary>
+
+```
+FROM ubuntu:16.04
+
+RUN apt-get update && apt-get install -y mongodb-server ruby-full ruby-dev build-essential git
+RUN gem install bundler
+RUN git clone -b monolith https://github.com/express42/reddit.git
+
+COPY mongod.conf /etc/mongod.conf
+COPY db_config /reddit/db_config
+COPY start.sh /start.sh
+
+RUN cd /reddit && bundle install
+RUN chmod 0777 /start.sh
+
+CMD ["/start.sh"]
+```
+</details>
+
+
+### Создание docker-machine
+
+```
+docker-machine create --driver google \
+ --google-machine-image https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts \
+ --google-machine-type n1-standard-1 \
+ --google-zone europe-west1-c \
+ docker-host
+```
+
+<details>
+  <summary>Результаты</summary>
+
+```
+Creating CA: /Users/oleksiimolodchenko/.docker/machine/certs/ca.pem
+Creating client certificate: /Users/oleksiimolodchenko/.docker/machine/certs/cert.pem
+Running pre-create checks...
+(docker-host) Check that the project exists
+(docker-host) Check if the instance already exists
+Creating machine...
+(docker-host) Generating SSH Key
+(docker-host) Creating host...
+(docker-host) Opening firewall ports
+(docker-host) Creating instance
+(docker-host) Waiting for Instance
+(docker-host) Uploading SSH Key
+Waiting for machine to be running, this may take a few minutes...
+Detecting operating system of created instance...
+Waiting for SSH to be available...
+Detecting the provisioner...
+Provisioning with ubuntu(systemd)...
+Installing Docker...
+Copying certs to the local machine directory...
+Copying certs to the remote machine...
+Setting Docker configuration on the remote daemon...
+Checking connection to Docker...
+Docker is up and running!
+To see how to connect your Docker Client to the Docker Engine running on this virtual machine, run: docker-machine env docker-host
+```
+</details>
+
+### Просмотр доступных docker хостов
+
+```
+docker-machine ls
+```
+<details><summary>Результаты</summary>
+
+```
+NAME          ACTIVE   DRIVER   STATE     URL                        SWARM   DOCKER     ERRORS
+docker-host   -        google   Running   tcp://35.205.105.23:2376           v18.09.2
+```
+</details>
+
+### Просмотр переменных окружения
+
+```
+docker env docker-host
+```
+
+<details><summary>Результаты</summary>
+
+```
+export DOCKER_TLS_VERIFY="1"
+export DOCKER_HOST="tcp://35.205.105.23:2376"
+export DOCKER_CERT_PATH="/Users/oleksiimolodchenko/.docker/machine/machines/docker-host"
+export DOCKER_MACHINE_NAME="docker-host"
+# Run this command to configure your shell:
+# eval $(docker-machine env docker-host)
+```
+</details>
+
+### Билд образа
+
+```
+docker build -t reddit:latest .
+```
+
+<details><summary>Результаты</summary>
+
+```
+Successfully built f1c893e2d5c2
+Successfully tagged reddit:latest
+```
+</details>
+
+### Просмотр образов после билда
+
+```
+docker ls -a
+```
+
+<details><summary>Результаты</summary>
+
+```
+REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+<none>              <none>              46b3004ea112        3 minutes ago       678MB
+reddit              latest              2e7fc873dd73        3 minutes ago       678MB
+<none>              <none>              e06864f9cb52        3 minutes ago       678MB
+<none>              <none>              50ae28c86fdc        4 minutes ago       639MB
+<none>              <none>              56e70902af5a        4 minutes ago       639MB
+<none>              <none>              17f214ca6a47        4 minutes ago       639MB
+<none>              <none>              bdb4fcba53ec        4 minutes ago       639MB
+<none>              <none>              7cbedbb73ddf        4 minutes ago       638MB
+<none>              <none>              ebdede07e55e        4 minutes ago       636MB
+<none>              <none>              07f5c8b3ddcb        5 minutes ago       142MB
+ubuntu              16.04               7e87e2b3bf7a        3 weeks ago         117MB
+```
+</details>
+
+### Запуск контейнера
+
+```
+docker run --name reddit -d --network=host reddit:latest
+```
+
+<details><summary>Результаты</summary>
+
+```
+6e5c24dd99234b138002fbee8a7664dc2a7e57f7191e1579762c1a150e53328a
+```
+</details>
+
+### Просмотр запущенных контейнеров
+
+```
+docker container ls
+```
+
+<details><summary>Результаты</summary>
+
+```
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
+6e5c24dd9923        reddit:latest       "/start.sh"         59 seconds ago      Up 58 seconds                           reddit
+```
+</details>
+
+### Добавление тега к образу
+
+```
+docker tag reddit:latest amolodchenko/otus-reddit:1.0
+```
+
+### Пуш образа на Docker Hub
+
+```
+docker push amolodchenko/otus-reddit:1.1
+```
+
+<details><summary>Результаты</summary>
+
+```
+The push refers to repository [docker.io/amolodchenko/otus-reddit]
+867f35ec250f: Pushed
+a45e832e1613: Pushed
+f6acb2b8a963: Pushed
+d9707f07272c: Pushed
+b695c014824a: Pushed
+ab2ba9f9db80: Pushed
+1ed07f1969bf: Pushed
+ef3b91aa4c43: Pushed
+74f5ecde5fa3: Pushed
+68dda0c9a8cd: Mounted from library/ubuntu
+f67191ae09b8: Mounted from library/ubuntu
+b2fd8b4c3da7: Mounted from library/ubuntu
+0de2edf7bff4: Mounted from library/ubuntu
+1.0: digest: sha256:623ca98dd08175f99f1843623cb061650e7870d8cbf1726ef37f575aa63445f6 size: 3034
+```
+</details>
+
+</details>
