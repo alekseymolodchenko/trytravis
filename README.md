@@ -351,3 +351,226 @@ b2fd8b4c3da7: Mounted from library/ubuntu
 </details>
 
 </details>
+
+## HW #14 - Docker-образы. Микросервисы
+
+<details>
+  <summary>Результаты</summary>
+
+### Скачаем последний образ MongoDB
+
+```
+$ docker pull mongo:latest
+```
+
+<details><summary>Результат</summary>
+
+```
+latest: Pulling from library/mongo
+7b722c1070cd: Pull complete
+5fbf74db61f1: Pull complete
+ed41cb72e5c9: Pull complete
+7ea47a67709e: Pull complete
+778aebe6fb26: Pull complete
+3b4b1e0b80ed: Pull complete
+844ccc42fe76: Pull complete
+eab01fe8ebf8: Pull complete
+e5758d5381b1: Pull complete
+dc553720c5c3: Pull complete
+67750c781aa2: Pull complete
+b00b8942c827: Pull complete
+32201bb8ca69: Pull complete
+Digest: sha256:002fda672a0d196325a30736d4c80d04adf6f39dd28db41e6799f42844cab7b8
+Status: Downloaded newer image for mongo:latest
+```
+</details>
+
+### Сборка образов post comment ui
+
+```
+$ docker build -t amolodchenko/post:1.0 ./post-py
+$ docker build -t amolodchenko/comment:1.0 ./comment
+$ docker build -t amolodchenko/ui:1.0 ./ui
+```
+
+<details><summary>Результат</summary>
+
+```
+REPOSITORY             TAG                 IMAGE ID            CREATED             SIZE
+amolodchenko/ui        1.0                 f097f6e1a287        29 seconds ago      767MB
+amolodchenko/comment   1.0                 c9555708a62f        3 minutes ago       765MB
+amolodchenko/post      1.0                 d687efa726cc        5 minutes ago       106MB
+```
+</details>
+
+### Cоздание сети приложения
+
+```
+$ docker network create reddit
+$ docker network inspect reddit
+```
+
+<details><summary>Результат</summary>
+
+```
+[
+    {
+        "Name": "reddit",
+        "Id": "3dad778da17eb6f99688ede2958d39d69c27369d9cc0d92e5192e3f6a27abe42",
+        "Created": "2019-02-17T10:54:10.985922986Z",
+        "Scope": "local",
+        "Driver": "bridge",
+        "EnableIPv6": false,
+        "IPAM": {
+            "Driver": "default",
+            "Options": {},
+            "Config": [
+                {
+                    "Subnet": "172.18.0.0/16",
+                    "Gateway": "172.18.0.1"
+                }
+            ]
+        },
+        "Internal": false,
+        "Attachable": false,
+        "Ingress": false,
+        "ConfigFrom": {
+            "Network": ""
+        },
+        "ConfigOnly": false,
+        "Containers": {
+            "3144c1b6f675289024c0f480d96fd0dcafdec7492c67eb446278454be078fba3": {
+                "Name": "frosty_kirch",
+                "EndpointID": "868b60072fdb11f44ba77c680c4c6341846e0fa5621dac87d4b57aca74de5ffa",
+                "MacAddress": "02:42:ac:12:00:03",
+                "IPv4Address": "172.18.0.3/16",
+                "IPv6Address": ""
+            },
+            "ae24de46199d57777fcba4d614722096fc405ead14606a2b60a79526d97a45a4": {
+                "Name": "naughty_carson",
+                "EndpointID": "a6b7757608cb706bd1ce291ef8dc114328ba43ef6189835041ad3c806591f096",
+                "MacAddress": "02:42:ac:12:00:02",
+                "IPv4Address": "172.18.0.2/16",
+                "IPv6Address": ""
+            },
+            "d8769be40baf52c1d2d78201be23f9a9f9507bb3b813bb94dd583b3f42e5dbea": {
+                "Name": "stoic_thompson",
+                "EndpointID": "a2ca22304c2752c4b1842a6a5e76bbf6a474c66c0af2c2de48c68f004e398754",
+                "MacAddress": "02:42:ac:12:00:04",
+                "IPv4Address": "172.18.0.4/16",
+                "IPv6Address": ""
+            },
+            "dd25f842b40088a9c614ae3783f480cf3b08c85d8a12ce6f3dba520307580da6": {
+                "Name": "cranky_kilby",
+                "EndpointID": "26d6363add1541d6940ee168e3a7dbb428c206ef1b09e7d94dca7b2e6a3a0ca8",
+                "MacAddress": "02:42:ac:12:00:05",
+                "IPv4Address": "172.18.0.5/16",
+                "IPv6Address": ""
+            }
+        },
+        "Options": {},
+        "Labels": {}
+    }
+]
+```
+</details>
+
+### Запуск контейнеров
+
+```
+$ docker run -d --network=reddit --network-alias=post_db --network-alias=comment_db mongo:latest
+$ docker run -d --network=reddit --network-alias=post amolodchenko/post:1.0
+$ docker run -d --network=reddit --network-alias=comment amolodchenko/comment:1.0
+$ docker run -d --network=reddit -p 9292:9292 amolodchenko/ui:1.0
+```
+
+<details><summary>Результат</summary>
+
+```
+$ docker ps
+
+CONTAINER ID        IMAGE                      COMMAND                  CREATED              STATUS              PORTS                    NAMES
+c5437b5330ef        amolodchenko/ui:1.0        "puma"                   About a minute ago   Up About a minute   0.0.0.0:9292->9292/tcp   frosty_diffie
+ecc13cc8dd22        amolodchenko/comment:1.0   "puma"                   2 minutes ago        Up 2 minutes                                 silly_newton
+7d86eacca531        amolodchenko/post:1.0      "python3 post_app.py"    2 minutes ago        Up 2 minutes                                 determined_rosalind
+47f3a78dffd7        mongo:latest               "docker-entrypoint.s…"   4 minutes ago        Up 4 minutes        27017/tcp                heuristic_sanderson
+```
+</details>
+
+### Изменение network-alias
+
+```
+$ docker run -d --network=reddit \
+--network-alias=post_db_1 --network-alias=comment_db_1 mongo:latest
+$ docker run -d --env "POST_DATABASE_HOST=post_db_1" --network=reddit \
+--network-alias=post_1 amolodchenko/post:1.0
+$ docker run -d --env "COMMENT_DATABASE_HOST=comment_db_1" --network=reddit \
+--network-alias=comment_1 amolodchenko/comment:1.0
+$ docker run -d --env "POST_SERVICE_HOST=post_1" --env "COMMENT_SERVICE_HOST=comment_1" --network=reddit \
+-p 9292:9292 amolodchenko/ui:1.0
+```
+
+<details><summary>Результат</summary>
+
+```
+$ docker ps
+
+CONTAINER ID        IMAGE                      COMMAND                  CREATED              STATUS              PORTS                    NAMES
+dd25f842b400        amolodchenko/ui:1.0        "puma"                   About a minute ago   Up About a minute   0.0.0.0:9292->9292/tcp   cranky_kilby
+d8769be40baf        amolodchenko/comment:1.0   "puma"                   About a minute ago   Up About a minute                            stoic_thompson
+3144c1b6f675        amolodchenko/post:1.0      "python3 post_app.py"    About a minute ago   Up About a minute                            frosty_kirch
+ae24de46199d        mongo:latest               "docker-entrypoint.s…"   About a minute ago   Up About a minute   27017/tcp
+```
+</details>
+
+### Изменение network-alias
+
+```
+$ docker run -d --network=reddit \
+--network-alias=post_db_1 --network-alias=comment_db_1 mongo:latest
+$ docker run -d --env "POST_DATABASE_HOST=post_db_1" --network=reddit \
+--network-alias=post_1 amolodchenko/post:1.0
+$ docker run -d --env "COMMENT_DATABASE_HOST=comment_db_1" --network=reddit \
+--network-alias=comment_1 amolodchenko/comment:1.0
+$ docker run -d --env "POST_SERVICE_HOST=post_1" --env "COMMENT_SERVICE_HOST=comment_1" --network=reddit \
+-p 9292:9292 amolodchenko/ui:1.0
+```
+
+<details><summary>Результат</summary>
+
+```
+$ docker ps
+
+CONTAINER ID        IMAGE                      COMMAND                  CREATED              STATUS              PORTS                    NAMES
+dd25f842b400        amolodchenko/ui:1.0        "puma"                   About a minute ago   Up About a minute   0.0.0.0:9292->9292/tcp   cranky_kilby
+d8769be40baf        amolodchenko/comment:1.0   "puma"                   About a minute ago   Up About a minute                            stoic_thompson
+3144c1b6f675        amolodchenko/post:1.0      "python3 post_app.py"    About a minute ago   Up About a minute                            frosty_kirch
+ae24de46199d        mongo:latest               "docker-entrypoint.s…"   About a minute ago   Up About a minute   27017/tcp
+```
+</details>
+
+### Оптимизация размера образа ui
+
+```
+* Базовый образ Alpine Linux;
+*
+* Удалены зависимости для билда;
+
+
+```
+
+<details><summary>Результат</summary>
+
+```
+$ docker ps
+
+CONTAINER ID        IMAGE                      COMMAND                  CREATED              STATUS              PORTS                    NAMES
+dd25f842b400        amolodchenko/ui:1.0        "puma"                   About a minute ago   Up About a minute   0.0.0.0:9292->9292/tcp   cranky_kilby
+d8769be40baf        amolodchenko/comment:1.0   "puma"                   About a minute ago   Up About a minute                            stoic_thompson
+3144c1b6f675        amolodchenko/post:1.0      "python3 post_app.py"    About a minute ago   Up About a minute                            frosty_kirch
+ae24de46199d        mongo:latest               "docker-entrypoint.s…"   About a minute ago   Up About a minute   27017/tcp
+```
+</details>
+
+
+</details>
