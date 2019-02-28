@@ -745,12 +745,93 @@ $ docker network connect front_net comment
 ```
 </details>
 
-### Подключение контейнеров к другой сети
+### Cетевой стек на хосте с docker
 <details><summary>Cодержимое</summary>
 
 ```
-$ docker network connect front_net post
-$ docker network connect front_net comment
+$ sudo docker network ls
+NETWORK ID          NAME                DRIVER              SCOPE
+db0befca59c8        back_net            bridge              local
+0c738e867b94        bridge              bridge              local
+8c9c600a4873        front_net           bridge              local
+34a31b94d2c3        host                host                local
+c3b5e1da3ced        none                null                local
+3dad778da17e        reddit              bridge              local
+```
+</details>
+
+### Список bridge-интерфейсов на docker-хосте
+<details><summary>Cодержимое</summary>
+
+```
+$ sudo ifconfig | grep br
+br-3dad778da17e Link encap:Ethernet  HWaddr 02:42:f7:10:5c:bb
+br-8c9c600a4873 Link encap:Ethernet  HWaddr 02:42:bd:c8:6d:12
+br-db0befca59c8 Link encap:Ethernet  HWaddr 02:42:db:8d:d1:44
+```
+</details>
+
+### Информация по bridge-интерфейсу br-db0befca59c8
+<details><summary>Cодержимое</summary>
+
+```
+$ brctl show br-db0befca59c8
+bridge name	bridge id		STP enabled	interfaces
+br-db0befca59c8		8000.0242db8dd144	no		veth0c218a7
+							veth3306c08
+							veth3b12803
+```
+</details>
+
+### Правила iptables
+<details><summary>Cодержимое</summary>
+
+```
+$ sudo iptables -nL -t nat
+Chain PREROUTING (policy ACCEPT)
+target     prot opt source               destination
+DOCKER     all  --  0.0.0.0/0            0.0.0.0/0            ADDRTYPE match dst-type LOCAL
+
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination
+DOCKER     all  --  0.0.0.0/0           !127.0.0.0/8          ADDRTYPE match dst-type LOCAL
+
+Chain POSTROUTING (policy ACCEPT)
+target     prot opt source               destination
+MASQUERADE  all  --  10.0.1.0/24          0.0.0.0/0
+MASQUERADE  all  --  10.0.2.0/24          0.0.0.0/0
+MASQUERADE  all  --  172.17.0.0/16        0.0.0.0/0
+MASQUERADE  all  --  172.18.0.0/16        0.0.0.0/0
+MASQUERADE  tcp  --  10.0.1.2             10.0.1.2             tcp dpt:9292
+
+Chain DOCKER (2 references)
+target     prot opt source               destination
+RETURN     all  --  0.0.0.0/0            0.0.0.0/0
+RETURN     all  --  0.0.0.0/0            0.0.0.0/0
+RETURN     all  --  0.0.0.0/0            0.0.0.0/0
+RETURN     all  --  0.0.0.0/0            0.0.0.0/0
+DNAT       tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:9292 to:10.0.1.2:9292
+```
+</details>
+
+### Изменение префиска проекта в docker-compose
+<details><summary>Cодержимое</summary>
+
+```
+$ export COMPOSE_PROJECT_NAME=reddiaapp
+$ docker-compose up -d
+
+Creating network "reddiaapp_back_net" with the default driver
+Creating network "reddiaapp_front_net" with the default driver
+Creating volume "reddiaapp_post_db" with default driver
+Creating reddiaapp_post_db_1 ... done
+Creating reddiaapp_post_1    ... done
+Creating reddiaapp_comment_1 ... done
+Creating reddiaapp_ui_1      ... done
+
 ```
 </details>
 
