@@ -553,24 +553,286 @@ ae24de46199d        mongo:latest               "docker-entrypoint.s…"   About 
 
 ```
 * Базовый образ Alpine Linux;
-*
-* Удалены зависимости для билда;
-
-
+* Удалена директория /root/.bundle;
+* Удалены зависимости для билда.
 ```
 
 <details><summary>Результат</summary>
 
 ```
-$ docker ps
-
-CONTAINER ID        IMAGE                      COMMAND                  CREATED              STATUS              PORTS                    NAMES
-dd25f842b400        amolodchenko/ui:1.0        "puma"                   About a minute ago   Up About a minute   0.0.0.0:9292->9292/tcp   cranky_kilby
-d8769be40baf        amolodchenko/comment:1.0   "puma"                   About a minute ago   Up About a minute                            stoic_thompson
-3144c1b6f675        amolodchenko/post:1.0      "python3 post_app.py"    About a minute ago   Up About a minute                            frosty_kirch
-ae24de46199d        mongo:latest               "docker-entrypoint.s…"   About a minute ago   Up About a minute   27017/tcp
+$ docker images
+REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+amolodchenko/ui     2.5                 e668864b5709        10 seconds ago      38.5MB
+amolodchenko/ui     2.1                 d4c8a71d4084        23 minutes ago      209MB
+amolodchenko/ui     2.0                 3b2ec8ad8887        35 minutes ago      445MB
+amolodchenko/ui     1.0                 d005d8fd3f20        8 hours ago         767MB
 ```
 </details>
 
+### Создание Docker Volume
+
+```
+$ docker volume create reddit_db
+```
+
+<details><summary>Результат</summary>
+
+```
+$ docker volume ls
+DRIVER              VOLUME NAME
+local               0bebeee2b1f9760c6555c2c5b3c8aa7e9da6c11abc93cebd085170efc2d6f169
+local               4af32e3d381086d9536adc2809b89e5cf6123c082c9b5384ef57f3787c08cebe
+local               6963a90468a93a613933b2c4861571324016c7988e3044066bfa916ddd4b021e
+local               a6c7df89ff00f5e953fa857c2b878702375c9930fc6473ee4c9838e751eb3883
+local               aa811515f31925a9c3607c563780168d975b8066901eb0fff6af3df1d5c5b3ec
+local               ab14d831a699d183ff9fe9637c532b634fd3d79696675abca57bba96de7dab74
+local               reddit_db
+```
+</details>
+
+</details>
+
+## HW #15 - Работа с сетью в Docker
+
+<details>
+  <summary>Результаты</summary>
+
+### Запуск контейнера с использованием none-драйвера
+
+<details><summary>Cодержимое</summary>
+
+```
+$ docker run -ti --rm --network none joffotron/docker-net-tools -c ifconfig
+Unable to find image 'joffotron/docker-net-tools:latest' locally
+latest: Pulling from joffotron/docker-net-tools
+3690ec4760f9: Pull complete
+0905b79e95dc: Pull complete
+Digest: sha256:5752abdc4351a75e9daec681c1a6babfec03b317b273fc56f953592e6218d5b5
+Status: Downloaded newer image for joffotron/docker-net-tools:latest
+lo        Link encap:Local Loopback
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          UP LOOPBACK RUNNING  MTU:65536  Metric:1
+          RX packets:0 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:0 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000
+          RX bytes:0 (0.0 B)  TX bytes:0 (0.0 B)
+```
+</details>
+
+### Запуск контейнера в сетевом пространстве docker-хоста
+
+<details><summary>Cодержимое</summary>
+
+```
+$ docker run -ti --rm --network host joffotron/docker-net-tools -c ifconfig
+br-3dad778da17e Link encap:Ethernet  HWaddr 02:42:F7:10:5C:BB
+          inet addr:172.18.0.1  Bcast:172.18.255.255  Mask:255.255.0.0
+          UP BROADCAST MULTICAST  MTU:1500  Metric:1
+          RX packets:0 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:0 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0
+          RX bytes:0 (0.0 B)  TX bytes:0 (0.0 B)
+
+docker0   Link encap:Ethernet  HWaddr 02:42:22:23:E5:3C
+          inet addr:172.17.0.1  Bcast:172.17.255.255  Mask:255.255.0.0
+          UP BROADCAST MULTICAST  MTU:1500  Metric:1
+          RX packets:0 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:0 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0
+          RX bytes:0 (0.0 B)  TX bytes:0 (0.0 B)
+
+ens4      Link encap:Ethernet  HWaddr 42:01:0A:84:00:0C
+          inet addr:10.132.0.12  Bcast:10.132.0.12  Mask:255.255.255.255
+          inet6 addr: fe80::4001:aff:fe84:c%32585/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1460  Metric:1
+          RX packets:765 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:671 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000
+          RX bytes:5883244 (5.6 MiB)  TX bytes:92393 (90.2 KiB)
+
+lo        Link encap:Local Loopback
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          inet6 addr: ::1%32585/128 Scope:Host
+          UP LOOPBACK RUNNING  MTU:65536  Metric:1
+          RX packets:0 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:0 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000
+          RX bytes:0 (0.0 B)  TX bytes:0 (0.0 B)
+```
+</details>
+
+### Запуск контейнера nginx несколько раз
+
+<details><summary>Cодержимое</summary>
+
+```
+$ docker run --network host -d nginx
+В docker ps только один контейнер, потому что порт уже занят и все последующие падают с ошибкой
+Проверит можно командой docker logs <container_id>
+docker logs 0e15ceaca53920aeb1cb7647a849e6179139461c3e4b06d70d438cb8b923c45f
+[emerg] 1#1: bind() to 0.0.0.0:80 failed (98: Address already in use)
+nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+```
+</details>
+
+### Cоздание bridge-сети
+
+<details><summary>Cодержимое</summary>
+
+```
+docker network create reddit
+```
+</details>
+
+### Запуск приложения с использованием bridge-сети
+
+<details><summary>Cодержимое</summary>
+
+```
+$ docker run -d --network=reddit mongo:latest
+bfc0824330cd88f77646caabc6b033231f4e4cf73343429e2bb68e6e9f8aee5e
+$ docker run -d --network=reddit amolodchenko/post:1.0
+64ee92dcb85c86df2aabdc6bae80f14775a88a72195e39b714863b9d2dfe28db
+$ docker run -d --network=reddit amolodchenko/comment:1.0
+0e252769d59b6eb86431d5a5a3c52abbb2be61ede1c760d6c821df9b384b8be9
+$ docker run -d --network=reddit -p 9292:9292 amolodchenko/ui:1.0
+605504f84eafd3e7e9ea5ec2aafd45c88e39091b8a0a2ede5591332d8e3798a7
+```
+</details>
+
+### Запуск контейнеров с алиасами
+
+<details><summary>Cодержимое</summary>
+
+```
+$ docker run -d --network=reddit --network-alias=post_db --network-alias=comment_db mongo:latest
+7bdf54f32947a146802411972a50b2ddabf51714026c62420fbb4972f71e7b4e
+$ docker run -d --network=reddit --network-alias=post amolodchenko/post:1.0
+f3d1cc7d889dfee8a4578f95e5c54f4086e8b0817b5c90e080557f7e768c44d1
+$ docker run -d --network=reddit --network-alias=comment amolodchenko/comment:1.0
+0e4d5b1648af77619278ced1ca57816fdd76166ace601cad90c2b8fe67019577
+$ docker run -d --network=reddit -p 9292:9292 amolodchenko/ui:1.0
+8a2cff03b56346ef0339f7b0aca955ea61bb0f515950749d028a498eb58d13a6
+```
+</details>
+
+### Запуск приложения в 2-х bridge сетях
+<details><summary>Cодержимое</summary>
+
+```
+$ docker network create back_net --subnet=10.0.2.0/24
+db0befca59c8edd5b1cf00dd2a07272de6b55c8e3fab0775911062760f4f002e
+$ docker network create front_net --subnet=10.0.1.0/24
+8c9c600a4873cadf9a1b9f174974e38048b1b544f29d9bec0927859fc143ca14
+
+$ docker run -d --network=front_net -p 9292:9292 --name ui amolodchenko/ui:1.0
+33fdbfa5df0e11441e82f03205e23ab25f2294a61f452eda719de58c65ad9275
+$ docker run -d --network=back_net --name comment amolodchenko/comment:1.0
+6b79981a7bb35f8f331e73dd3ea67b20d1cb75bed5c2eecb4a4eab8c4f6569ce
+$ docker run -d --network=back_net --name post amolodchenko/post:1.0
+f93b671fc0704ec7383ed9c859a5768ba34a6e8de9482086648c17ec3db6eab6
+$ docker run -d --network=back_net --name mongo_db --network-alias=post_db --network-alias=comment_db mongo:latest
+9b9f7c50a2c0b714ff7506626c99ae745205ce319e7f7493538bee88bd3d6cae
+```
+</details>
+
+### Подключение контейнеров к другой сети
+<details><summary>Cодержимое</summary>
+
+```
+$ docker network connect front_net post
+$ docker network connect front_net comment
+```
+</details>
+
+### Cетевой стек на хосте с docker
+<details><summary>Cодержимое</summary>
+
+```
+$ sudo docker network ls
+NETWORK ID          NAME                DRIVER              SCOPE
+db0befca59c8        back_net            bridge              local
+0c738e867b94        bridge              bridge              local
+8c9c600a4873        front_net           bridge              local
+34a31b94d2c3        host                host                local
+c3b5e1da3ced        none                null                local
+3dad778da17e        reddit              bridge              local
+```
+</details>
+
+### Список bridge-интерфейсов на docker-хосте
+<details><summary>Cодержимое</summary>
+
+```
+$ sudo ifconfig | grep br
+br-3dad778da17e Link encap:Ethernet  HWaddr 02:42:f7:10:5c:bb
+br-8c9c600a4873 Link encap:Ethernet  HWaddr 02:42:bd:c8:6d:12
+br-db0befca59c8 Link encap:Ethernet  HWaddr 02:42:db:8d:d1:44
+```
+</details>
+
+### Информация по bridge-интерфейсу br-db0befca59c8
+<details><summary>Cодержимое</summary>
+
+```
+$ brctl show br-db0befca59c8
+bridge name	bridge id		STP enabled	interfaces
+br-db0befca59c8		8000.0242db8dd144	no		veth0c218a7
+							veth3306c08
+							veth3b12803
+```
+</details>
+
+### Правила iptables
+<details><summary>Cодержимое</summary>
+
+```
+$ sudo iptables -nL -t nat
+Chain PREROUTING (policy ACCEPT)
+target     prot opt source               destination
+DOCKER     all  --  0.0.0.0/0            0.0.0.0/0            ADDRTYPE match dst-type LOCAL
+
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination
+DOCKER     all  --  0.0.0.0/0           !127.0.0.0/8          ADDRTYPE match dst-type LOCAL
+
+Chain POSTROUTING (policy ACCEPT)
+target     prot opt source               destination
+MASQUERADE  all  --  10.0.1.0/24          0.0.0.0/0
+MASQUERADE  all  --  10.0.2.0/24          0.0.0.0/0
+MASQUERADE  all  --  172.17.0.0/16        0.0.0.0/0
+MASQUERADE  all  --  172.18.0.0/16        0.0.0.0/0
+MASQUERADE  tcp  --  10.0.1.2             10.0.1.2             tcp dpt:9292
+
+Chain DOCKER (2 references)
+target     prot opt source               destination
+RETURN     all  --  0.0.0.0/0            0.0.0.0/0
+RETURN     all  --  0.0.0.0/0            0.0.0.0/0
+RETURN     all  --  0.0.0.0/0            0.0.0.0/0
+RETURN     all  --  0.0.0.0/0            0.0.0.0/0
+DNAT       tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:9292 to:10.0.1.2:9292
+```
+</details>
+
+### Изменение префиска проекта в docker-compose
+<details><summary>Cодержимое</summary>
+
+```
+$ export COMPOSE_PROJECT_NAME=reddiaapp
+$ docker-compose up -d
+
+Creating network "reddiaapp_back_net" with the default driver
+Creating network "reddiaapp_front_net" with the default driver
+Creating volume "reddiaapp_post_db" with default driver
+Creating reddiaapp_post_db_1 ... done
+Creating reddiaapp_post_1    ... done
+Creating reddiaapp_comment_1 ... done
+Creating reddiaapp_ui_1      ... done
+
+```
+</details>
 
 </details>

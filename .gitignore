@@ -16,3 +16,4 @@ vault.key
 .cache
 .pytest_cache
 gce_googleapiclient.ini
+.env
