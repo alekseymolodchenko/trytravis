@@ -16,7 +16,7 @@ before_script:
 build_job:
   stage: build
   script:
-    - docker build -t amolodchenko/otus-reddit .
+    - docker build -t gitlab/reddit .
 
 test_unit_job:
   stage: test
