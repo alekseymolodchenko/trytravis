@@ -8,7 +8,8 @@ stages:
   - stage
   - production
 
-services: docker:dind
+services:
+  - docker:dind
 
 variables:
   DATABASE_URL: 'mongodb://mongo/user_posts'
