@@ -2,7 +2,6 @@ image: ruby:2.4.2
 
 stages:
   - build
-  - push
   - test
   - review
   - stage
@@ -25,12 +24,6 @@ build_job:
   script:
     - docker info
     - docker build -t $LATEST_VER .
-
-push_job:
-  stage: push
-  image: docker:stable
-
-  script:
     - echo "$REGISTRY_PASSWORD" | docker login -u "$REGISTRY_USER" --password-stdin
     - docker push $LATEST_VER && docker image rm $LATEST_VER
 
