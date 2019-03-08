@@ -7,6 +7,9 @@ stages:
   - stage
   - production
 
+services:
+  - docker:dind
+
 variables:
   DATABASE_URL: 'mongodb://mongo/user_posts'
 before_script:
@@ -14,7 +17,6 @@ before_script:
   - bundle install
 
 build_job:
-  image: gitlab/dind
   stage: build
   script:
     - docker build -t amolodchenko/reddit .
