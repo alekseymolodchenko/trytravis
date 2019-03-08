@@ -15,7 +15,4 @@ RUN apk --no-cache add make=4.2.1-r2 gcc=8.2.0-r2 libc-dev=0.7.1-r0 \
 
 COPY . $APP_HOME
 
-ENV COMMENT_DATABASE_HOST comment_db
-ENV COMMENT_DATABASE comments
-
 CMD ["puma"]
