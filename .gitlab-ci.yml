@@ -14,9 +14,10 @@ before_script:
   - bundle install
 
 build_job:
+  image: gitlab/dind
   stage: build
   script:
-    - docker build -t gitlab/reddit .
+    - docker build -t amolodchenko/reddit .
 
 test_unit_job:
   stage: test
