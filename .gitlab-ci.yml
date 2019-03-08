@@ -12,18 +12,21 @@ services:
 
 variables:
   DATABASE_URL: 'mongodb://mongo/user_posts'
+
 before_script:
   - cd reddit
-  - bundle install
 
 build_job:
   stage: build
   image: docker:stable
+
   script:
     - docker build -t amolodchenko/reddit .
 
 test_unit_job:
   stage: test
+  before_script:
+    - bundle install
   services:
     - mongo:latest
   script:
@@ -31,11 +34,15 @@ test_unit_job:
 
 test_integration_job:
   stage: test
+  before_script:
+    - bundle install
   script:
     - echo 'Testing 2'
 
 deploy_dev_job:
   stage: review
+  before_script:
+    - bundle install
   script:
     - echo 'Deploy'
   environment:
@@ -44,6 +51,8 @@ deploy_dev_job:
 
 branch review:
   stage: review
+  before_script:
+    - bundle install
   script: echo "Deploy to $CI_ENVIRONMENT_SLUG"
   environment:
    name: branch/$CI_COMMIT_REF_NAME
@@ -58,6 +67,8 @@ staging:
   when: manual
   only:
     - /^\d+\.\d+\.\d+/
+  before_script:
+    - bundle install
   script:
     - echo 'Deploy'
   environment:
@@ -68,6 +79,8 @@ production:
   when: manual
   only:
     - /^\d+\.\d+\.\d+/
+  before_script:
+    - bundle install
   script:
     - echo 'Deploy'
   environment:
