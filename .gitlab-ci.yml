@@ -2,16 +2,15 @@ image: ruby:2.4.2
 
 stages:
   - build
+  - push
   - test
   - review
   - stage
   - production
 
-services:
-  - docker:dind
-
 variables:
   DATABASE_URL: 'mongodb://mongo/user_posts'
+  LATEST_VER: amolodchenko/redditapp:latest
 
 before_script:
   - cd reddit
@@ -21,7 +20,16 @@ build_job:
   image: docker:stable
 
   script:
-    - docker build -t amolodchenko/reddit .
+    - docker info
+    - docker build -t $LATEST_VER .
+
+push_job:
+  stage: push
+  image: docker:stable
+
+  script:
+    - echo "$REGISTRY_PASSWORD" | docker login -u "$REGISTRY_USER" --password-stdin
+    - docker push $LATEST_VER && docker image rm $LATEST_VER
 
 test_unit_job:
   stage: test
@@ -51,8 +59,6 @@ deploy_dev_job:
 
 branch review:
   stage: review
-  before_script:
-    - bundle install
   script: echo "Deploy to $CI_ENVIRONMENT_SLUG"
   environment:
    name: branch/$CI_COMMIT_REF_NAME
