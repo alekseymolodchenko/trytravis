@@ -53,6 +53,13 @@ services:
   node-exporter:
     image: prom/node-exporter:v0.15.2
     user: root
+    networks:
+      back_net:
+       aliases:
+       - node_exporter
+      front_net:
+       aliases:
+       - node_exporter
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
