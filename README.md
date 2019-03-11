@@ -836,3 +836,126 @@ Creating reddiaapp_ui_1      ... done
 </details>
 
 </details>
+
+## HW #16 - Устройство Gitlab CI. Построение процесса непрерывной интеграции
+
+<details>
+  <summary>Результаты</summary>
+
+### Запуск docker-хоста для Gitlab CI
+
+<details><summary>Cодержимое</summary>
+
+```
+$ docker-machine create --driver google \
+  --google-machine-image https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts \  --google-machine-type n1-standard-1 \
+  --google-disk-size "100" \
+  --google-zone europe-west1-c \
+  --google-open-port 80/tcp \
+  --google-open-port 443/tcp \
+  --google-project "docker-1234920" \
+  gitlab-ci
+```
+</details>
+
+### Создание необходимых директорий для установки Gitlab CI
+
+<details><summary>Cодержимое</summary>
+
+```
+$ mkdir -p /srv/gitlab/config /srv/gitlab/data /srv/gitlab/logs
+```
+</details>
+
+### Создание docker-compose.yml для установки Gitlab CI
+
+<details><summary>Cодержимое</summary>
+
+```
+web:
+  image: 'gitlab/gitlab-ce:latest'
+  restart: always
+  hostname: 'gitlab.example.com'
+  environment:
+    GITLAB_OMNIBUS_CONFIG: |
+      external_url 'http://34.76.124.163'
+  ports:
+    - '80:80'
+    - '443:443'
+    - '2222:22'
+  volumes:
+    - '/srv/gitlab/config:/etc/gitlab'
+    - '/srv/gitlab/logs:/var/log/gitlab'
+    - '/srv/gitlab/data:/var/opt/gitlab'
+```
+</details>
+
+### Добавление remote в микросервисном репозитории
+
+<details><summary>Cодержимое</summary>
+
+```
+$ git checkout -b gitlab-ci-1
+$ git remote add gitlab http://34.76.124.163/homework/example.git
+$ git push gitlab gitlab-ci-1
+```
+
+</details>
+
+### Установка Gitlab CI Runner
+
+<details><summary>Cодержимое</summary>
+
+```
+$ docker run -d --name gitlab-runner --restart always \
+  -v /srv/gitlab-runner/config:/etc/gitlab-runner \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  gitlab/gitlab-runner:latest
+```
+
+</details>
+
+### Регистрация Gitlab CI Runner
+
+<details><summary>Cодержимое</summary>
+
+```
+$ docker exec -it gitlab-runner1 gitlab-runner register \
+  --run-untagged --locked=false --url http://34.76.124.163/ \
+  --registration-token "q9SrHzmfKXH7kYN_WBeu" --executor docker \
+  --description "Docker in Docker runner" --docker-image "docker:stable"  \
+  --docker-privileged
+```
+
+</details>
+
+
+### Добавим в шаг build сборку контейнера с redditapp
+<details><summary>Cодержимое</summary>
+
+```
+...
+build_job:
+  stage: build
+  image: docker:stable
+
+  script:
+    - docker info
+    - docker build -t $LATEST_VER .
+    - echo "$REGISTRY_PASSWORD" | docker login -u "$REGISTRY_USER" --password-stdin
+    - docker push $LATEST_VER && docker image rm $LATEST_VER
+...
+```
+
+</details>
+
+### Добавим нотификацию в канал Slack
+<details><summary>Cодержимое</summary>
+
+```
+https://devops-team-otus.slack.com/messages/CF25D53SA/details/
+```
+
+</details>
+
+</details>
