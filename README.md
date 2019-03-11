@@ -920,7 +920,7 @@ $ docker run -d --name gitlab-runner --restart always \
 <details><summary>Cодержимое</summary>
 
 ```
-$ docker exec -it gitlab-runner1 gitlab-runner register \
+$ docker exec -it gitlab-runner gitlab-runner register \
   --run-untagged --locked=false --url http://34.76.124.163/ \
   --registration-token "q9SrHzmfKXH7kYN_WBeu" --executor docker \
   --description "Docker in Docker runner" --docker-image "docker:stable"  \
