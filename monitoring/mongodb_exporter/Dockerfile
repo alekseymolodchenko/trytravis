@@ -1,4 +1,6 @@
-FROM golang:1.9 as build
+FROM golang:alpine as build
+
+RUN apk --no-cache add ca-certificates git gcc g++
 
 ENV APP_PATH $GOPATH/src/github.com/percona/mongodb_exporter
 WORKDIR $APP_PATH
