@@ -43,7 +43,7 @@ services:
        aliases:
        - prometheus
     ports:
-      - '9090:9090'
+      - 9090:9090
     volumes:
       - prometheus_data:/prometheus
     command:
@@ -51,13 +51,10 @@ services:
       - '--storage.tsdb.path=/prometheus'
       - '--storage.tsdb.retention=1d'
   node-exporter:
-    image: prom/node-exporter:v0.15.2
+    image: prom/node-exporter:${NODE_EXPORTER_VERSION}
     user: root
     networks:
       back_net:
-       aliases:
-       - node_exporter
-      front_net:
        aliases:
        - node_exporter
     volumes:
@@ -68,6 +65,20 @@ services:
       - '--path.procfs=/host/proc'
       - '--path.sysfs=/host/sys'
       - '--collector.filesystem.ignored-mount-points="^/(sys|proc|dev|host|etc)($$|/)"'
+  mongodb-exporter:
+    image: ${USERNAME}/mongodb_exporter:${MONGODB_EXPORTER_VERSION}
+    command:
+      - --collect.database
+      - --collect.collection
+      - --mongodb.uri=[mongodb://post_db:27017]
+    # environment:
+    #   - MONGODB_URL=mongodb://post_db
+    ports:
+      - 9216:9216
+    networks:
+      back_net:
+       aliases:
+       - mongodb_exporter
 volumes:
   post_db:
   prometheus_data:
