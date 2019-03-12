@@ -965,7 +965,7 @@ https://devops-team-otus.slack.com/messages/CF25D53SA/details/
 <details>
   <summary>Результаты</summary>
 
-### Выполнена пониторинг сервисов comment, post, ui с помощью blackbox экспортера
+### Выполнен мониторинг сервисов comment, post, ui с помощью blackbox экспортера
 
 <details><summary>Cодержимое Dockerfile</summary>
 
