@@ -71,14 +71,23 @@ services:
       - --collect.database
       - --collect.collection
       - --mongodb.uri=[mongodb://post_db:27017]
-    # environment:
-    #   - MONGODB_URL=mongodb://post_db
     ports:
       - 9216:9216
     networks:
       back_net:
        aliases:
        - mongodb_exporter
+  blackbox-exporter:
+    image: ${USERNAME}/blackbox_exporter:${BLACKBOX_EXPORTER_VERSION}
+    ports:
+      - 9115:9115
+    networks:
+      back_net:
+       aliases:
+       - blackbox_exporter
+      front_net:
+       aliases:
+       - blackbox_exporter
 volumes:
   post_db:
   prometheus_data:
