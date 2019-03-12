@@ -1,10 +1,10 @@
-VERSION := $(shell git rev-parse HEAD)
+VERSION := $(shell git describe --tags --abbrev=0)
 BUILD_DATE := $(shell date -R)
 VCS_URL := $(shell basename `git rev-parse --show-toplevel`)
 VCS_REF := $(shell git log -1 --pretty=%h)
 NAME := $(shell basename `git rev-parse --show-toplevel`)
 VENDOR := $(shell whoami)
-DOCKER_IMAGE := ${USERNAME}/mongodb_exporter
+DOCKER_IMAGE := ${USER_NAME}/mongodb_exporter
 
 print:
 	@echo VERSION=${VERSION}
@@ -15,7 +15,7 @@ print:
 	@echo VENDOR=${VENDOR}
 
 build:
-	docker build -t ${DOCKER_IMAGE}:$(VERSION) --build-arg VERSION="${VERSION}" \
+	docker build -t ${DOCKER_IMAGE}:${VERSION} --build-arg VERSION="${VERSION}" \
 	--build-arg BUILD_DATE="${BUILD_DATE}" \
 	--build-arg VCS_URL="${VCS_URL}" \
 	--build-arg VCS_REF="${VCS_REF}" \
@@ -23,6 +23,6 @@ build:
 	--build-arg VENDOR="${VENDOR}" .
 
 push:
-	docker login -u ${DOCKER_USER}
-	docker push $(DOCKER_IMAGE):$(VERSION)
-	docker push $(DOCKER_IMAGE):latest
+	docker login -u ${USER_NAME}
+	docker push ${DOCKER_IMAGE}:${VERSION}
+	docker push ${DOCKER_IMAGE}:latest
