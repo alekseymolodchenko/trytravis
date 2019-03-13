@@ -6,6 +6,8 @@ NAME := $(shell basename `git rev-parse --show-toplevel`)
 VENDOR := $(shell whoami)
 DOCKER_HOST := docker-host
 
+all: create-vm build up show-ip
+
 version:
 	@echo VERSION=${VERSION}
 	@echo BUILD_DATE=${BUILD_DATE}
@@ -13,8 +15,6 @@ version:
 	@echo VCS_REF=${VCS_REF}
 	@echo NAME=${NAME}
 	@echo VENDOR=${VENDOR}
-
-start: create_vm build up show_ip
 
 
 create-vm:
@@ -25,7 +25,7 @@ create-vm:
 	eval $$(docker-machine env ${DOCKER_HOST})
 
 destroy-vm:
-  docker-machine rm ${DOCKER_MACHINE_NAME}
+	docker-machine rm ${DOCKER_MACHINE_NAME}
 
 
 build:
