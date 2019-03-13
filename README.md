@@ -836,3 +836,304 @@ Creating reddiaapp_ui_1      ... done
 </details>
 
 </details>
+
+## HW #16 - Устройство Gitlab CI. Построение процесса непрерывной интеграции
+
+<details>
+  <summary>Результаты</summary>
+
+### Запуск docker-хоста для Gitlab CI
+
+<details><summary>Cодержимое</summary>
+
+```
+$ docker-machine create --driver google \
+  --google-machine-image https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts \  --google-machine-type n1-standard-1 \
+  --google-disk-size "100" \
+  --google-zone europe-west1-c \
+  --google-open-port 80/tcp \
+  --google-open-port 443/tcp \
+  --google-project "docker-1234920" \
+  gitlab-ci
+```
+</details>
+
+### Создание необходимых директорий для установки Gitlab CI
+
+<details><summary>Cодержимое</summary>
+
+```
+$ mkdir -p /srv/gitlab/config /srv/gitlab/data /srv/gitlab/logs
+```
+</details>
+
+### Создание docker-compose.yml для установки Gitlab CI
+
+<details><summary>Cодержимое</summary>
+
+```
+web:
+  image: 'gitlab/gitlab-ce:latest'
+  restart: always
+  hostname: 'gitlab.example.com'
+  environment:
+    GITLAB_OMNIBUS_CONFIG: |
+      external_url 'http://34.76.124.163'
+  ports:
+    - '80:80'
+    - '443:443'
+    - '2222:22'
+  volumes:
+    - '/srv/gitlab/config:/etc/gitlab'
+    - '/srv/gitlab/logs:/var/log/gitlab'
+    - '/srv/gitlab/data:/var/opt/gitlab'
+```
+</details>
+
+### Добавление remote в микросервисном репозитории
+
+<details><summary>Cодержимое</summary>
+
+```
+$ git checkout -b gitlab-ci-1
+$ git remote add gitlab http://34.76.124.163/homework/example.git
+$ git push gitlab gitlab-ci-1
+```
+
+</details>
+
+### Установка Gitlab CI Runner
+
+<details><summary>Cодержимое</summary>
+
+```
+$ docker run -d --name gitlab-runner --restart always \
+  -v /srv/gitlab-runner/config:/etc/gitlab-runner \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  gitlab/gitlab-runner:latest
+```
+
+</details>
+
+### Регистрация Gitlab CI Runner
+
+<details><summary>Cодержимое</summary>
+
+```
+$ docker exec -it gitlab-runner gitlab-runner register \
+  --run-untagged --locked=false --url http://34.76.124.163/ \
+  --registration-token "q9SrHzmfKXH7kYN_WBeu" --executor docker \
+  --description "Docker in Docker runner" --docker-image "docker:stable"  \
+  --docker-privileged
+```
+
+</details>
+
+
+### Добавим в шаг build сборку контейнера с redditapp
+<details><summary>Cодержимое</summary>
+
+```
+...
+build_job:
+  stage: build
+  image: docker:stable
+
+  script:
+    - docker info
+    - docker build -t $LATEST_VER .
+    - echo "$REGISTRY_PASSWORD" | docker login -u "$REGISTRY_USER" --password-stdin
+    - docker push $LATEST_VER && docker image rm $LATEST_VER
+...
+```
+
+</details>
+
+### Добавим нотификацию в канал Slack
+<details><summary>Cодержимое</summary>
+
+```
+https://devops-team-otus.slack.com/messages/CF25D53SA/details/
+```
+
+</details>
+
+</details>
+
+## HW #17 - Введение в мониторинг. Модели и принципы работы систем мониторинга
+
+<details>
+  <summary>Результаты</summary>
+
+### Выполнен мониторинг сервисов comment, post, ui с помощью blackbox экспортера
+
+<details><summary>Cодержимое Dockerfile</summary>
+
+```
+FROM prom/blackbox-exporter:v0.14.0
+COPY blackbox.yml /etc/blackbox_exporter/
+
+ARG VERSION
+ARG BUILD_DATE
+ARG VCS_URL
+ARG VCS_REF
+ARG NAME
+ARG VENDOR
+
+LABEL org.label-schema.build-date=$BUILD_DATE \
+      org.label-schema.name=$NAME \
+      org.label-schema.description="Blackbox Exporter" \
+      org.label-schema.vcs-ref=$VCS_REF \
+      org.label-schema.vcs-url="https://github.com/Otus-DevOps-2018-11/alekseymolodchenko_microservices" \
+      org.label-schema.vendor=$VENDOR \
+      org.label-schema.version=$VERSION \
+      org.label-schema.docker.schema-version="1.0" \
+      org.label-schema.docker.cmd="docker run -t -i -p 9115:9115 -d amolodchenko/blackbox_exporter"
+
+```
+</details>
+
+### Makefile для проекта
+
+<details><summary>Cодержимое Makefile</summary>
+
+```
+VERSION := $(shell git describe --tags --abbrev=0)
+BUILD_DATE := $(shell date -R)
+VCS_URL := $(shell basename `git rev-parse --show-toplevel`)
+VCS_REF := $(shell git log -1 --pretty=%h)
+NAME := $(shell basename `git rev-parse --show-toplevel`)
+VENDOR := $(shell whoami)
+DOCKER_HOST := docker-host
+
+version:
+	@echo VERSION=${VERSION}
+	@echo BUILD_DATE=${BUILD_DATE}
+	@echo VCS_URL=${VCS_URL}
+	@echo VCS_REF=${VCS_REF}
+	@echo NAME=${NAME}
+	@echo VENDOR=${VENDOR}
+
+start: create_vm build up show_ip
+
+
+create-vm:
+	docker-machine create --driver google \
+	--google-machine-image https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts \
+	--google-machine-type n1-standard-1 \
+	--google-zone europe-west1-b ${DOCKER_HOST}
+	eval $$(docker-machine env ${DOCKER_HOST})
+
+destroy-vm:
+  docker-machine rm ${DOCKER_MACHINE_NAME}
+
+build:
+	docker build -t ${USER_NAME}/ui:${VERSION} src/ui/
+	docker build -t ${USER_NAME}/post:${VERSION} src/post-py/
+	docker build -t ${USER_NAME}/comment:${VERSION} src/comment/
+	docker build -t ${USER_NAME}/prometheus:${VERSION} --build-arg VERSION="${VERSION}" \
+	--build-arg BUILD_DATE="${BUILD_DATE}" \
+	--build-arg VCS_URL="${VCS_URL}" \
+	--build-arg VCS_REF="${VCS_REF}" \
+	--build-arg NAME="${NAME}" \
+	--build-arg VENDOR="${VENDOR}" monitoring/prometheus
+	docker build -t ${USER_NAME}/mongodb_exporter:${VERSION} --build-arg VERSION="${VERSION}" \
+	--build-arg BUILD_DATE="${BUILD_DATE}" \
+	--build-arg VCS_URL="${VCS_URL}" \
+	--build-arg VCS_REF="${VCS_REF}" \
+	--build-arg NAME="${NAME}" \
+	--build-arg VENDOR="${VENDOR}" monitoring/mongodb_exporter
+	docker build -t ${USER_NAME}/blackbox_exporter:${VERSION} --build-arg VERSION="${VERSION}" \
+	--build-arg BUILD_DATE="${BUILD_DATE}" \
+	--build-arg VCS_URL="${VCS_URL}" \
+	--build-arg VCS_REF="${VCS_REF}" \
+	--build-arg NAME="${NAME}" \
+	--build-arg VENDOR="${VENDOR}" monitoring/blackbox_exporter
+
+build-ui:
+	docker build -t ${USER_NAME}/ui:${VERSION} src/ui/
+
+build-post:
+	docker build -t ${USER_NAME}/post:${VERSION} src/post-py/
+
+build-comment:
+	docker build -t ${USER_NAME}/comment:${VERSION} src/comment/
+
+build-prometheus:
+	docker build -t ${USER_NAME}/prometheus:${VERSION} --build-arg VERSION="${VERSION}" \
+	--build-arg BUILD_DATE="${BUILD_DATE}" \
+	--build-arg VCS_URL="${VCS_URL}" \
+	--build-arg VCS_REF="${VCS_REF}" \
+	--build-arg NAME="${NAME}" \
+	--build-arg VENDOR="${VENDOR}" monitoring/prometheus
+
+build-mongodb-exporter:
+	docker build -t ${USER_NAME}/mongodb_exporter:${VERSION} --build-arg VERSION="${VERSION}" \
+	--build-arg BUILD_DATE="${BUILD_DATE}" \
+	--build-arg VCS_URL="${VCS_URL}" \
+	--build-arg VCS_REF="${VCS_REF}" \
+	--build-arg NAME="${NAME}" \
+	--build-arg VENDOR="${VENDOR}" monitoring/mongodb_exporter
+
+build-blackbox-exporter:
+	docker build -t ${USER_NAME}/blackbox_exporter:${VERSION} --build-arg VERSION="${VERSION}" \
+	--build-arg BUILD_DATE="${BUILD_DATE}" \
+	--build-arg VCS_URL="${VCS_URL}" \
+	--build-arg VCS_REF="${VCS_REF}" \
+	--build-arg NAME="${NAME}" \
+	--build-arg VENDOR="${VENDOR}" monitoring/blackbox_exporter
+
+login:
+	docker login -u ${USER_NAME}
+
+push: login
+	docker push ${USER_NAME}/ui:${VERSION}
+	docker push ${USER_NAME}/ui:latest
+	docker push ${USER_NAME}/post:${VERSION}
+	docker push ${USER_NAME}/post:latest
+	docker push ${USER_NAME}/comment:${VERSION}
+	docker push ${USER_NAME}/comment:latest
+	docker push ${USER_NAME}/prometheus:${VERSION}
+	docker push ${USER_NAME}/prometheus:latest
+	docker push ${USER_NAME}/mongodb_exporter:${VERSION}
+	docker push ${USER_NAME}/mongodb_exporter:latest
+	docker push ${USER_NAME}/blackbox_exporter:${VERSION}
+	docker push ${USER_NAME}/blackbox_exporter:latest
+
+push-ui: login
+	docker push ${USER_NAME}/ui:${VERSION}
+	docker push ${USER_NAME}/ui:latest
+
+push-post: login
+	docker push ${USER_NAME}/post:${VERSION}
+	docker push ${USER_NAME}/post:latest
+
+push-comment: login
+	docker push ${USER_NAME}/comment:${VERSION}
+	docker push ${USER_NAME}/comment:latest
+
+push-prometheus: login
+	docker push ${USER_NAME}/prometheus:${VERSION}
+	docker push ${USER_NAME}/prometheus:latest
+
+push-mongodb-exporter: login
+	docker push ${USER_NAME}/mongodb_exporter:${VERSION}
+	docker push ${USER_NAME}/mongodb_exporter:latest
+
+push-blackbox-exporter: login
+	docker push ${USER_NAME}/blackbox_exporter:${VERSION}
+	docker push ${USER_NAME}/blackbox_exporter:latest
+
+up: down
+	cd docker/ ; docker-compose up -d
+down:
+	cd docker/ ; docker-compose down
+
+show-ip:
+	@echo ${DOCKER_HOST} ip-address: $(shell docker-machine ip ${DOCKER_HOST})
+
+
+```
+</details>
+
+</details>
