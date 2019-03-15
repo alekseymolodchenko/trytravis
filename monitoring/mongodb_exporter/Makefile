@@ -21,6 +21,12 @@ build:
 	--build-arg VCS_REF="${VCS_REF}" \
 	--build-arg NAME="${NAME}" \
 	--build-arg VENDOR="${VENDOR}" .
+	docker build -t ${DOCKER_IMAGE}:latest --build-arg VERSION="latest" \
+	--build-arg BUILD_DATE="${BUILD_DATE}" \
+	--build-arg VCS_URL="${VCS_URL}" \
+	--build-arg VCS_REF="${VCS_REF}" \
+	--build-arg NAME="${NAME}" \
+	--build-arg VENDOR="${VENDOR}" .
 
 push:
 	docker login -u ${USER_NAME}
