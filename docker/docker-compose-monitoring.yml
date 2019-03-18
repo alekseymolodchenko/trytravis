@@ -65,6 +65,13 @@ services:
       - '/var/lib/docker/:/var/lib/docker:ro'
     ports:
       - '8080:8080'
+    networks:
+      back_net:
+       aliases:
+       - cadvisor
+      front_net:
+       aliases:
+       - cadvisor
   grafana:
     image: grafana/grafana:5.0.0
     volumes:
@@ -76,6 +83,13 @@ services:
       - prometheus
     ports:
       - 3000:3000
+    networks:
+      back_net:
+       aliases:
+       - grafana
+      front_net:
+       aliases:
+       - grafana
 
 volumes:
   prometheus_data:
