@@ -1,6 +1,6 @@
 FROM prom/prometheus:v2.1.0
 
-COPY prometheus.yml /etc/prometheus/
+COPY *.yml /etc/prometheus/
 
 ARG VERSION
 ARG BUILD_DATE
