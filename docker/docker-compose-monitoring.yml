@@ -96,6 +96,10 @@ services:
       - '--config.file=/etc/alertmanager/config.yml'
     ports:
       - 9093:9093
+    networks:
+      back_net:
+       aliases:
+       - alertmanager
 
 volumes:
   prometheus_data:
