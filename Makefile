@@ -53,6 +53,15 @@ build-prometheus:
 	--build-arg NAME="${NAME}" \
 	--build-arg VENDOR="${VENDOR}" monitoring/prometheus
 
+build-alertmanager:
+	eval $$(docker-machine env $(DOCKER_HOST)) ; docker build -t ${USER_NAME}/alertmanager:${VERSION} -t ${USER_NAME}/alertmanager:latest \
+	--build-arg VERSION="${VERSION}" \
+	--build-arg BUILD_DATE="${BUILD_DATE}" \
+	--build-arg VCS_URL="${VCS_URL}" \
+	--build-arg VCS_REF="${VCS_REF}" \
+	--build-arg NAME="${NAME}" \
+	--build-arg VENDOR="${VENDOR}" monitoring/alertmanager
+
 build-mongodb-exporter:
 	eval $$(docker-machine env $(DOCKER_HOST)) ; docker build -t ${USER_NAME}/mongodb_exporter:${VERSION} -t ${USER_NAME}/mongodb_exporter:latest \
 	--build-arg VERSION="${VERSION}" \
@@ -89,6 +98,9 @@ push-comment:
 
 push-prometheus:
 	eval $$(docker-machine env $(DOCKER_HOST)) ; docker login -u ${USER_NAME} ; docker push ${USER_NAME}/prometheus:${VERSION} ; docker push ${USER_NAME}/prometheus:latest
+
+push-alertmanager:
+	eval $$(docker-machine env $(DOCKER_HOST)) ; docker login -u ${USER_NAME} ; docker push ${USER_NAME}/alertmanager:${VERSION} ; docker push ${USER_NAME}/alertmanager:latest
 
 push-mongodb-exporter:
 	eval $$(docker-machine env $(DOCKER_HOST)) ; docker login -u ${USER_NAME} ; docker push ${USER_NAME}/mongodb_exporter:${VERSION} ; docker push ${USER_NAME}/mongodb_exporter:latest
