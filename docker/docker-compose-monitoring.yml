@@ -69,11 +69,8 @@ services:
       back_net:
        aliases:
        - cadvisor
-      front_net:
-       aliases:
-       - cadvisor
   grafana:
-    image: grafana/grafana:5.0.0
+    image: ${USER_NAME}/grafana:${GRAFANA_VERSION}
     volumes:
       - grafana_data:/var/lib/grafana
     environment:
@@ -87,13 +84,12 @@ services:
       back_net:
        aliases:
        - grafana
-      front_net:
-       aliases:
-       - grafana
   alertmanager:
     image: ${USER_NAME}/alertmanager
     command:
       - '--config.file=/etc/alertmanager/config.yml'
+    depends_on:
+      - prometheus
     ports:
       - 9093:9093
     networks:

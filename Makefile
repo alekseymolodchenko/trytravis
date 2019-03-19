@@ -7,8 +7,8 @@ VENDOR := $(shell whoami)
 DOCKER_HOST := docker-host
 USER_NAME ?= $(shell echo $USER_NAME)
 
-.PHONY: all version docker-env build up down show-ip login push
-all: create-vm build up show-ip
+.PHONY: all version docker-env build up-app up-down show-ip login push-app
+all: create-vm build-app build-monitoring push-app push-monitoring up-app show-ip
 
 version:
 	@echo VERSION=${VERSION}
@@ -96,7 +96,7 @@ login:
 
 push: push-app push-monitoring
 push-app: push-ui push-post push-comment
-push-monitoring: push-prometheus push-mongodb-exporter push-blackbox-exporter
+push-monitoring: push-prometheus push-mongodb-exporter push-blackbox-exporter push-alertmanager push-grafana
 
 push-ui:
 	eval $$(docker-machine env $(DOCKER_HOST)) ; docker login -u ${USER_NAME} ; docker push ${USER_NAME}/ui:${VERSION} ; docker push ${USER_NAME}/ui:latest
@@ -122,10 +122,15 @@ push-mongodb-exporter:
 push-blackbox-exporter:
 	eval $$(docker-machine env $(DOCKER_HOST)) ; docker login -u ${USER_NAME} ; docker push ${USER_NAME}/blackbox_exporter:${VERSION} ; docker push ${USER_NAME}/blackbox_exporter:latest
 
-up: down
+up-app: down-app
 	eval $$(docker-machine env $(DOCKER_HOST)) ; cd docker/ ; docker-compose up -d
-down:
+down-app:
 	eval $$(docker-machine env $(DOCKER_HOST)) ; cd docker/ ; docker-compose down
+
+up-monitoring:
+	eval $$(docker-machine env $(DOCKER_HOST)) ; cd docker/ ; docker-compose -f docker-compose-monitoring.yml up -d
+down-monitoring:
+	eval $$(docker-machine env $(DOCKER_HOST)) ; cd docker/ ; docker-compose -f docker-compose-monitoring.yml down
 
 show-ip:
 	@echo ${DOCKER_HOST} ip-address: $(shell docker-machine ip ${DOCKER_HOST})
