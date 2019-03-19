@@ -29,6 +29,4 @@ build:
 	--build-arg VENDOR="${VENDOR}" .
 
 push:
-	docker login -u ${USER_NAME}
-	docker push ${DOCKER_IMAGE}:${VERSION}
-	docker push ${DOCKER_IMAGE}:latest
+	docker login -u ${USER_NAME} ; docker push ${DOCKER_IMAGE}:${VERSION} ; docker push ${DOCKER_IMAGE}:latest
