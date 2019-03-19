@@ -23,7 +23,9 @@ create-vm:
 	--google-machine-image https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts \
 	--google-machine-type n1-standard-1 \
 	--google-zone europe-west1-b \
-  $(DOCKER_HOST)
+	--engine-opt experimental=true \
+	--engine-opt metrics-addr=127.0.0.1:9323 \
+	$(DOCKER_HOST)
 
 set-env:
 	eval $$(docker-machine env $(DOCKER_HOST))
@@ -33,7 +35,7 @@ destroy-vm:
 
 build: build-app build-monitoring
 build-app: build-ui build-post build-comment
-build-monitoring: build-prometheus build-mongodb-exporter build-blackbox-exporter
+build-monitoring: build-prometheus build-mongodb-exporter build-blackbox-exporter build-alertmanager build-grafana
 
 build-ui:
 	eval $$(docker-machine env $(DOCKER_HOST)) ; docker build -t ${USER_NAME}/ui:${VERSION} -t ${USER_NAME}/ui:latest src/ui/
@@ -61,6 +63,15 @@ build-alertmanager:
 	--build-arg VCS_REF="${VCS_REF}" \
 	--build-arg NAME="${NAME}" \
 	--build-arg VENDOR="${VENDOR}" monitoring/alertmanager
+
+build-grafana:
+	eval $$(docker-machine env $(DOCKER_HOST)) ; docker build -t ${USER_NAME}/grafana:${VERSION} -t ${USER_NAME}/grafana:latest \
+	--build-arg VERSION="${VERSION}" \
+	--build-arg BUILD_DATE="${BUILD_DATE}" \
+	--build-arg VCS_URL="${VCS_URL}" \
+	--build-arg VCS_REF="${VCS_REF}" \
+	--build-arg NAME="${NAME}" \
+	--build-arg VENDOR="${VENDOR}" monitoring/grafana
 
 build-mongodb-exporter:
 	eval $$(docker-machine env $(DOCKER_HOST)) ; docker build -t ${USER_NAME}/mongodb_exporter:${VERSION} -t ${USER_NAME}/mongodb_exporter:latest \
@@ -101,6 +112,9 @@ push-prometheus:
 
 push-alertmanager:
 	eval $$(docker-machine env $(DOCKER_HOST)) ; docker login -u ${USER_NAME} ; docker push ${USER_NAME}/alertmanager:${VERSION} ; docker push ${USER_NAME}/alertmanager:latest
+
+push-grafana:
+	eval $$(docker-machine env $(DOCKER_HOST)) ; docker login -u ${USER_NAME} ; docker push ${USER_NAME}/grafana:${VERSION} ; docker push ${USER_NAME}/grafana:latest
 
 push-mongodb-exporter:
 	eval $$(docker-machine env $(DOCKER_HOST)) ; docker login -u ${USER_NAME} ; docker push ${USER_NAME}/mongodb_exporter:${VERSION} ; docker push ${USER_NAME}/mongodb_exporter:latest
