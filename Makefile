@@ -36,7 +36,7 @@ destroy-vm:
 
 build: build-app build-monitoring
 build-app: build-ui build-post build-comment
-build-monitoring: build-prometheus build-mongodb-exporter build-blackbox-exporter build-alertmanager build-grafana
+build-monitoring: build-prometheus build-mongodb-exporter build-blackbox-exporter build-alertmanager build-grafana build-telegraf build-trickster
 
 build-ui:
 	eval $$(docker-machine env $(DOCKER_HOST)) ; docker build -t ${USER_NAME}/ui:${VERSION} -t ${USER_NAME}/ui:latest src/ui/
@@ -92,12 +92,30 @@ build-blackbox-exporter:
 	--build-arg NAME="${NAME}" \
 	--build-arg VENDOR="${VENDOR}" monitoring/blackbox_exporter
 
+build-telegraf:
+	eval $$(docker-machine env $(DOCKER_HOST)) ; docker build -t ${USER_NAME}/telegraf:${VERSION} -t ${USER_NAME}/telegraf:latest \
+	--build-arg VERSION="${VERSION}" \
+	--build-arg BUILD_DATE="${BUILD_DATE}" \
+	--build-arg VCS_URL="${VCS_URL}" \
+	--build-arg VCS_REF="${VCS_REF}" \
+	--build-arg NAME="${NAME}" \
+	--build-arg VENDOR="${VENDOR}" monitoring/telegraf
+
+build-trickster:
+	eval $$(docker-machine env $(DOCKER_HOST)) ; docker build -t ${USER_NAME}/trickster:${VERSION} -t ${USER_NAME}/trickster:latest \
+	--build-arg VERSION="${VERSION}" \
+	--build-arg BUILD_DATE="${BUILD_DATE}" \
+	--build-arg VCS_URL="${VCS_URL}" \
+	--build-arg VCS_REF="${VCS_REF}" \
+	--build-arg NAME="${NAME}" \
+	--build-arg VENDOR="${VENDOR}" monitoring/trickster
+
 login:
 	docker login -u ${USER_NAME}
 
 push: push-app push-monitoring
 push-app: push-ui push-post push-comment
-push-monitoring: push-prometheus push-mongodb-exporter push-blackbox-exporter push-alertmanager push-grafana
+push-monitoring: push-prometheus push-mongodb-exporter push-blackbox-exporter push-alertmanager push-grafana push-telegraf push-trickster
 
 push-ui:
 	eval $$(docker-machine env $(DOCKER_HOST)) ; docker login -u ${USER_NAME} ; docker push ${USER_NAME}/ui:${VERSION} ; docker push ${USER_NAME}/ui:latest
@@ -122,6 +140,12 @@ push-mongodb-exporter:
 
 push-blackbox-exporter:
 	eval $$(docker-machine env $(DOCKER_HOST)) ; docker login -u ${USER_NAME} ; docker push ${USER_NAME}/blackbox_exporter:${VERSION} ; docker push ${USER_NAME}/blackbox_exporter:latest
+
+push-telegraf:
+	eval $$(docker-machine env $(DOCKER_HOST)) ; docker login -u ${USER_NAME} ; docker push ${USER_NAME}/telegraf:${VERSION} ; docker push ${USER_NAME}/telegraf:latest
+
+push-trickster:
+	eval $$(docker-machine env $(DOCKER_HOST)) ; docker login -u ${USER_NAME} ; docker push ${USER_NAME}/trickster:${VERSION} ; docker push ${USER_NAME}/trickster:latest
 
 up-app: down-app
 	eval $$(docker-machine env $(DOCKER_HOST)) ; cd docker/ ; docker-compose up -d

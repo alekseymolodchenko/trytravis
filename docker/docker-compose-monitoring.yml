@@ -77,7 +77,7 @@ services:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=secret
     depends_on:
-      - prometheus
+      - trickster
     ports:
       - 3000:3000
     networks:
@@ -109,6 +109,12 @@ services:
       front_net:
         aliases:
           - telegraf
+  trickster:
+    image: ${USER_NAME}/trickster:{TRICKSTER_VERSION}
+    networks:
+      back_net:
+       aliases:
+       - trickster
 
 volumes:
   prometheus_data:
