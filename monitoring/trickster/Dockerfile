@@ -1,1 +1,3 @@
-FROM trickster:0.1.7
+FROM tricksterio/trickster:0.1.7
+
+COPY trickster.conf /etc/trickster/

@@ -110,7 +110,7 @@ services:
         aliases:
           - telegraf
   trickster:
-    image: ${USER_NAME}/trickster:{TRICKSTER_VERSION}
+    image: ${USER_NAME}/trickster:${TRICKSTER_VERSION}
     networks:
       back_net:
        aliases:
