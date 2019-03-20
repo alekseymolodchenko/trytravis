@@ -8,3 +8,9 @@ datasources:
   is_default: true
   version: 1
   editable: false
+
+- name: Stackdriver
+  type: stackdriver
+  access: proxy
+  jsonData:
+    authenticationType: gce

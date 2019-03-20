@@ -61,6 +61,10 @@ scrape_configs:
     static_configs:
       - targets: ['172.17.0.1:9999']
 
+  - job_name: 'telegraf'
+    static_configs:
+      - targets: ['telegraf:9273']
+
 rule_files:
   - "alerts.yml"
 
