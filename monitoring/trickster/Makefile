@@ -4,7 +4,7 @@ VCS_URL := $(shell basename `git rev-parse --show-toplevel`)
 VCS_REF := $(shell git log -1 --pretty=%h)
 NAME := $(shell basename `git rev-parse --show-toplevel`)
 VENDOR := $(shell whoami)
-DOCKER_IMAGE := ${USER_NAME}/prometheus
+DOCKER_IMAGE := ${USER_NAME}/trickster
 
 print:
 	@echo VERSION=${VERSION}

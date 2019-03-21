@@ -1,0 +1,16 @@
+---
+datasources:
+- name: 'Prometheus'
+  type: 'prometheus'
+  access: 'proxy'
+  org_id: 1
+  url: 'http://trickster:9090'
+  is_default: true
+  version: 1
+  editable: false
+
+- name: Stackdriver
+  type: stackdriver
+  access: proxy
+  jsonData:
+    authenticationType: gce

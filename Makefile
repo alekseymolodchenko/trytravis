@@ -5,6 +5,10 @@ VCS_REF := $(shell git log -1 --pretty=%h)
 NAME := $(shell basename `git rev-parse --show-toplevel`)
 VENDOR := $(shell whoami)
 DOCKER_HOST := docker-host
+USER_NAME ?= $(shell echo $USER_NAME)
+
+.PHONY: all version docker-env build up-app up-down show-ip login push-app
+all: create-vm build-app build-monitoring push-app push-monitoring up-app show-ip
 
 version:
 	@echo VERSION=${VERSION}
@@ -14,62 +18,65 @@ version:
 	@echo NAME=${NAME}
 	@echo VENDOR=${VENDOR}
 
-start: create_vm build up show_ip
-
-
 create-vm:
 	docker-machine create --driver google \
 	--google-machine-image https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts \
 	--google-machine-type n1-standard-1 \
-	--google-zone europe-west1-b ${DOCKER_HOST}
-	eval $$(docker-machine env ${DOCKER_HOST})
+	--google-zone europe-west1-b \
+	--google-scopes "https://www.googleapis.com/auth/monitoring.read" \
+	--engine-opt experimental \
+	--engine-opt metrics-addr=0.0.0.0:9999 \
+	$(DOCKER_HOST)
+
+set-env:
+	eval $$(docker-machine env $(DOCKER_HOST))
 
 destroy-vm:
-  docker-machine rm ${DOCKER_MACHINE_NAME}
+	eval $$(docker-machine env $(DOCKER_HOST)) ; docker-machine rm ${DOCKER_MACHINE_NAME}
 
-
-build:
-	docker build -t ${USER_NAME}/ui:${VERSION} src/ui/
-	docker build -t ${USER_NAME}/post:${VERSION} src/post-py/
-	docker build -t ${USER_NAME}/comment:${VERSION} src/comment/
-	docker build -t ${USER_NAME}/prometheus:${VERSION} --build-arg VERSION="${VERSION}" \
-	--build-arg BUILD_DATE="${BUILD_DATE}" \
-	--build-arg VCS_URL="${VCS_URL}" \
-	--build-arg VCS_REF="${VCS_REF}" \
-	--build-arg NAME="${NAME}" \
-	--build-arg VENDOR="${VENDOR}" monitoring/prometheus
-	docker build -t ${USER_NAME}/mongodb_exporter:${VERSION} --build-arg VERSION="${VERSION}" \
-	--build-arg BUILD_DATE="${BUILD_DATE}" \
-	--build-arg VCS_URL="${VCS_URL}" \
-	--build-arg VCS_REF="${VCS_REF}" \
-	--build-arg NAME="${NAME}" \
-	--build-arg VENDOR="${VENDOR}" monitoring/mongodb_exporter
-	docker build -t ${USER_NAME}/blackbox_exporter:${VERSION} --build-arg VERSION="${VERSION}" \
-	--build-arg BUILD_DATE="${BUILD_DATE}" \
-	--build-arg VCS_URL="${VCS_URL}" \
-	--build-arg VCS_REF="${VCS_REF}" \
-	--build-arg NAME="${NAME}" \
-	--build-arg VENDOR="${VENDOR}" monitoring/blackbox_exporter
+build: build-app build-monitoring
+build-app: build-ui build-post build-comment
+build-monitoring: build-prometheus build-mongodb-exporter build-blackbox-exporter build-alertmanager build-grafana build-telegraf build-trickster
 
 build-ui:
-	docker build -t ${USER_NAME}/ui:${VERSION} src/ui/
+	eval $$(docker-machine env $(DOCKER_HOST)) ; docker build -t ${USER_NAME}/ui:${VERSION} -t ${USER_NAME}/ui:latest src/ui/
 
 build-post:
-	docker build -t ${USER_NAME}/post:${VERSION} src/post-py/
+	eval $$(docker-machine env $(DOCKER_HOST)) ; docker build -t ${USER_NAME}/post:${VERSION} -t ${USER_NAME}/post:latest src/post-py/
 
 build-comment:
-	docker build -t ${USER_NAME}/comment:${VERSION} src/comment/
+	eval $$(docker-machine env $(DOCKER_HOST)) ; docker build -t ${USER_NAME}/comment:${VERSION} -t ${USER_NAME}/comment:latest src/comment/
 
 build-prometheus:
-	docker build -t ${USER_NAME}/prometheus:${VERSION} --build-arg VERSION="${VERSION}" \
+	eval $$(docker-machine env $(DOCKER_HOST)) ; docker build -t ${USER_NAME}/prometheus:${VERSION} -t ${USER_NAME}/prometheus:latest \
+	--build-arg VERSION="${VERSION}" \
 	--build-arg BUILD_DATE="${BUILD_DATE}" \
 	--build-arg VCS_URL="${VCS_URL}" \
 	--build-arg VCS_REF="${VCS_REF}" \
 	--build-arg NAME="${NAME}" \
 	--build-arg VENDOR="${VENDOR}" monitoring/prometheus
 
+build-alertmanager:
+	eval $$(docker-machine env $(DOCKER_HOST)) ; docker build -t ${USER_NAME}/alertmanager:${VERSION} -t ${USER_NAME}/alertmanager:latest \
+	--build-arg VERSION="${VERSION}" \
+	--build-arg BUILD_DATE="${BUILD_DATE}" \
+	--build-arg VCS_URL="${VCS_URL}" \
+	--build-arg VCS_REF="${VCS_REF}" \
+	--build-arg NAME="${NAME}" \
+	--build-arg VENDOR="${VENDOR}" monitoring/alertmanager
+
+build-grafana:
+	eval $$(docker-machine env $(DOCKER_HOST)) ; docker build -t ${USER_NAME}/grafana:${VERSION} -t ${USER_NAME}/grafana:latest \
+	--build-arg VERSION="${VERSION}" \
+	--build-arg BUILD_DATE="${BUILD_DATE}" \
+	--build-arg VCS_URL="${VCS_URL}" \
+	--build-arg VCS_REF="${VCS_REF}" \
+	--build-arg NAME="${NAME}" \
+	--build-arg VENDOR="${VENDOR}" monitoring/grafana
+
 build-mongodb-exporter:
-	docker build -t ${USER_NAME}/mongodb_exporter:${VERSION} --build-arg VERSION="${VERSION}" \
+	eval $$(docker-machine env $(DOCKER_HOST)) ; docker build -t ${USER_NAME}/mongodb_exporter:${VERSION} -t ${USER_NAME}/mongodb_exporter:latest \
+	--build-arg VERSION="${VERSION}" \
 	--build-arg BUILD_DATE="${BUILD_DATE}" \
 	--build-arg VCS_URL="${VCS_URL}" \
 	--build-arg VCS_REF="${VCS_REF}" \
@@ -77,58 +84,78 @@ build-mongodb-exporter:
 	--build-arg VENDOR="${VENDOR}" monitoring/mongodb_exporter
 
 build-blackbox-exporter:
-	docker build -t ${USER_NAME}/blackbox_exporter:${VERSION} --build-arg VERSION="${VERSION}" \
+	eval $$(docker-machine env $(DOCKER_HOST)) ; docker build -t ${USER_NAME}/blackbox_exporter:${VERSION} -t ${USER_NAME}/blackbox_exporter:latest \
+	--build-arg VERSION="${VERSION}" \
 	--build-arg BUILD_DATE="${BUILD_DATE}" \
 	--build-arg VCS_URL="${VCS_URL}" \
 	--build-arg VCS_REF="${VCS_REF}" \
 	--build-arg NAME="${NAME}" \
 	--build-arg VENDOR="${VENDOR}" monitoring/blackbox_exporter
 
+build-telegraf:
+	eval $$(docker-machine env $(DOCKER_HOST)) ; docker build -t ${USER_NAME}/telegraf:${VERSION} -t ${USER_NAME}/telegraf:latest \
+	--build-arg VERSION="${VERSION}" \
+	--build-arg BUILD_DATE="${BUILD_DATE}" \
+	--build-arg VCS_URL="${VCS_URL}" \
+	--build-arg VCS_REF="${VCS_REF}" \
+	--build-arg NAME="${NAME}" \
+	--build-arg VENDOR="${VENDOR}" monitoring/telegraf
+
+build-trickster:
+	eval $$(docker-machine env $(DOCKER_HOST)) ; docker build -t ${USER_NAME}/trickster:${VERSION} -t ${USER_NAME}/trickster:latest \
+	--build-arg VERSION="${VERSION}" \
+	--build-arg BUILD_DATE="${BUILD_DATE}" \
+	--build-arg VCS_URL="${VCS_URL}" \
+	--build-arg VCS_REF="${VCS_REF}" \
+	--build-arg NAME="${NAME}" \
+	--build-arg VENDOR="${VENDOR}" monitoring/trickster
+
 login:
 	docker login -u ${USER_NAME}
 
-push: login
-	docker push ${USER_NAME}/ui:${VERSION}
-	docker push ${USER_NAME}/ui:latest
-	docker push ${USER_NAME}/post:${VERSION}
-	docker push ${USER_NAME}/post:latest
-	docker push ${USER_NAME}/comment:${VERSION}
-	docker push ${USER_NAME}/comment:latest
-	docker push ${USER_NAME}/prometheus:${VERSION}
-	docker push ${USER_NAME}/prometheus:latest
-	docker push ${USER_NAME}/mongodb_exporter:${VERSION}
-	docker push ${USER_NAME}/mongodb_exporter:latest
-	docker push ${USER_NAME}/blackbox_exporter:${VERSION}
-	docker push ${USER_NAME}/blackbox_exporter:latest
+push: push-app push-monitoring
+push-app: push-ui push-post push-comment
+push-monitoring: push-prometheus push-mongodb-exporter push-blackbox-exporter push-alertmanager push-grafana push-telegraf push-trickster
 
-push-ui: login
-	docker push ${USER_NAME}/ui:${VERSION}
-	docker push ${USER_NAME}/ui:latest
+push-ui:
+	eval $$(docker-machine env $(DOCKER_HOST)) ; docker login -u ${USER_NAME} ; docker push ${USER_NAME}/ui:${VERSION} ; docker push ${USER_NAME}/ui:latest
 
-push-post: login
-	docker push ${USER_NAME}/post:${VERSION}
-	docker push ${USER_NAME}/post:latest
+push-post:
+	eval $$(docker-machine env $(DOCKER_HOST)) ; docker login -u ${USER_NAME} ; docker push ${USER_NAME}/post:${VERSION} ; docker push ${USER_NAME}/post:latest
 
-push-comment: login
-	docker push ${USER_NAME}/comment:${VERSION}
-	docker push ${USER_NAME}/comment:latest
+push-comment:
+	eval $$(docker-machine env $(DOCKER_HOST)) ; docker login -u ${USER_NAME} ; docker push ${USER_NAME}/comment:${VERSION} ; docker push ${USER_NAME}/comment:latest
 
-push-prometheus: login
-	docker push ${USER_NAME}/prometheus:${VERSION}
-	docker push ${USER_NAME}/prometheus:latest
+push-prometheus:
+	eval $$(docker-machine env $(DOCKER_HOST)) ; docker login -u ${USER_NAME} ; docker push ${USER_NAME}/prometheus:${VERSION} ; docker push ${USER_NAME}/prometheus:latest
 
-push-mongodb-exporter: login
-	docker push ${USER_NAME}/mongodb_exporter:${VERSION}
-	docker push ${USER_NAME}/mongodb_exporter:latest
+push-alertmanager:
+	eval $$(docker-machine env $(DOCKER_HOST)) ; docker login -u ${USER_NAME} ; docker push ${USER_NAME}/alertmanager:${VERSION} ; docker push ${USER_NAME}/alertmanager:latest
 
-push-blackbox-exporter: login
-	docker push ${USER_NAME}/blackbox_exporter:${VERSION}
-	docker push ${USER_NAME}/blackbox_exporter:latest
+push-grafana:
+	eval $$(docker-machine env $(DOCKER_HOST)) ; docker login -u ${USER_NAME} ; docker push ${USER_NAME}/grafana:${VERSION} ; docker push ${USER_NAME}/grafana:latest
 
-up: down
-	cd docker/ ; docker-compose up -d
-down:
-	cd docker/ ; docker-compose down
+push-mongodb-exporter:
+	eval $$(docker-machine env $(DOCKER_HOST)) ; docker login -u ${USER_NAME} ; docker push ${USER_NAME}/mongodb_exporter:${VERSION} ; docker push ${USER_NAME}/mongodb_exporter:latest
+
+push-blackbox-exporter:
+	eval $$(docker-machine env $(DOCKER_HOST)) ; docker login -u ${USER_NAME} ; docker push ${USER_NAME}/blackbox_exporter:${VERSION} ; docker push ${USER_NAME}/blackbox_exporter:latest
+
+push-telegraf:
+	eval $$(docker-machine env $(DOCKER_HOST)) ; docker login -u ${USER_NAME} ; docker push ${USER_NAME}/telegraf:${VERSION} ; docker push ${USER_NAME}/telegraf:latest
+
+push-trickster:
+	eval $$(docker-machine env $(DOCKER_HOST)) ; docker login -u ${USER_NAME} ; docker push ${USER_NAME}/trickster:${VERSION} ; docker push ${USER_NAME}/trickster:latest
+
+up-app: down-app
+	eval $$(docker-machine env $(DOCKER_HOST)) ; cd docker/ ; docker-compose up -d
+down-app:
+	eval $$(docker-machine env $(DOCKER_HOST)) ; cd docker/ ; docker-compose down
+
+up-monitoring:
+	eval $$(docker-machine env $(DOCKER_HOST)) ; cd docker/ ; docker-compose -f docker-compose-monitoring.yml up -d
+down-monitoring:
+	eval $$(docker-machine env $(DOCKER_HOST)) ; cd docker/ ; docker-compose -f docker-compose-monitoring.yml down
 
 show-ip:
 	@echo ${DOCKER_HOST} ip-address: $(shell docker-machine ip ${DOCKER_HOST})
