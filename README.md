@@ -1151,6 +1151,9 @@ show-ip:
 ### Сбор метрик работы приложения и бизнес метрик
 * Реализован экспорт метрик post_count, comment_count приложения в Prometheus. Построены графики
 ### Настройка и проверка алертинга
+* Реализован алерт в slack при выходе из строя одного из сервисов
+### Завершение работы
+* Созданные в процессе образы запушены на [DockerHub](https://hub.docker.com/_/amolodchenko "DockerHub")
 
 ### Задание со *
 * В Makefile добавлены билды и пукликация сервисов
@@ -1164,4 +1167,213 @@ show-ip:
 ### Задание со ***
 * Реализована схема проксирования запросов от Grafana к Prometheus через Trickster, кеширующий прокси от Comcast
 
+</details>
+
+## HW #19 - Логирование и распределенная трассировка
+
+<details>
+  <summary>Результаты</summary>
+
+### Подготовка окружения
+* В Makefile обновлена цель create-vm
+```
+DOCKER_HOST := logging
+
+create-vm:
+	docker-machine create --driver google \
+	--google-machine-image https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts \
+	--google-machine-type n1-standard-1 \
+	--google-zone europe-west1-b \
+	--google-open-port 5601/tcp \
+	--google-open-port 9292/tcp \
+	--google-open-port 9411/tcp \
+  --google-open-port 8080/tcp \
+  --google-open-port 9090/tcp \
+  --google-open-port 3000/tcp \
+  --google-open-port 9292/tcp \
+	--google-scopes "https://www.googleapis.com/auth/monitoring.read" \
+	--engine-opt experimental \
+	--engine-opt metrics-addr=0.0.0.0:9999 \
+	$(DOCKER_HOST)
+```
+
+### Логирование Docker контейнеров
+* Elastic Stack
+
+Для агрегации логов вместо Logstash мы будем использовать Fluentd.
+Создадим ```docker-compose-logging.yml``` следующего содержания:
+
+```
+---
+version: '3'
+services:
+  fluentd:
+    image: ${USER_NAME}/fluentd
+    ports:
+      - "24224:24224"
+      - "24224:24224/udp"
+    networks:
+      back_net:
+       aliases:
+       - fluentd
+      front_net:
+       aliases:
+       - fluentd
+  elasticsearch:
+    image: elasticsearch:6.6.2
+    environment:
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - esdata1:/usr/share/elasticsearch/data
+    expose:
+      - 9200
+    ports:
+      - "9200:9200"
+    networks:
+      back_net:
+       aliases:
+       - elasticsearch
+
+  kibana:
+    image: kibana:6.6.2
+    ports:
+      - "5601:5601"
+    networks:
+      back_net:
+       aliases:
+       - kibana
+
+volumes:
+  esdata1:
+
+networks:
+  back_net:
+    ipam:
+      config:
+        - subnet: 10.0.2.0/24
+  front_net:
+    ipam:
+      config:
+        - subnet: 10.0.1.0/24
+
+```
+* Fluentd
+
+Cоздадим ```logging/fluentd/Dockerfile``` для fluentd
+
+```
+FROM fluent/fluentd:v0.12
+RUN gem install fluent-plugin-elasticsearch --no-rdoc --no-ri --version 1.9.5
+RUN gem install fluent-plugin-grok-parser --no-rdoc --no-ri --version 1.0.0
+ADD fluent.conf /fluentd/etc
+```
+
+И файл конфигурации ```logging/fluentd/fluentd.conf```
+
+```
+<source>
+ @type forward
+ port 24224
+ bind 0.0.0.0
+</source>
+<match *.**>
+ @type copy
+ <store>
+ @type elasticsearch
+ host elasticsearch
+ port 9200
+ logstash_format true
+ logstash_prefix fluentd
+ logstash_dateformat %Y%m%d
+ include_tag_key true
+ type_name access_log
+ tag_key @log_name
+ flush_interval 1s
+ </store>
+ <store>
+ @type stdout
+ </store>
+</match>
+```
+
+### Отправка логов во Fluentd
+* Добавим отправку логов для сервиса post
+```
+logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: localhost:24224
+        tag: service.post
+```
+### Фильтры
+* Добавим фильтр для парсинга json логов, приходящих от post сервиса в конфиг fluentd
+```
+<filter service.post>
+ @type parser
+ format json
+ key_name log
+</filter>
+```
+### Неструктурированные логи
+* Логирование UI сервиса
+```
+logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: localhost:24224
+        tag: service.ui
+```
+* Парсинг
+
+Для парсинга неструктурированных логов будем использовать grok-шаблоны
+```
+<filter service.ui>
+ @type parser
+ key_name log
+ format grok
+ grok_pattern %{RUBY_LOGGER}
+</filter>
+<filter service.ui>
+ @type parser
+ format grok
+ grok_pattern service=%{WORD:service} \| event=%{WORD:event} \| request_id=%{GREEDYDATA:request_id} \|
+message='%{GREEDYDATA:message}'
+ key_name message
+ reserve_data true
+</filter>
+```
+
+### Распределенный трейсинг Zipkin
+* Добавим сервис Zipkin для распределенного трейсинга приложения в ```docker-compose-logging.yml```
+```
+zipkin:
+  image: openzipkin/zipkin
+  ports:
+    - "9411:9411"
+  networks:
+    back_net:
+     aliases:
+     - zipkin
+    front_net:
+     aliases:
+     - zipkin
+```
+### Завершение работы
+* Образы запушены на [DockerHub](https://hub.docker.com/_/amolodchenko "DockerHub")
+
+### Задание со *
+* Добавлен grok-шаблон
+```
+<grok>
+  pattern service=%{WORD:service} \| event=%{WORD:event} \| path=%{URIPATH:path} \| request_id=%{GREEDYDATA:request_id} \| remote_addr=%{IP:remote_addr} \| method= %{WORD:method} \| response_status=%{NUMBER:response_status}
+</grok>
+```
+### Задание со **
+В развернутом приложени с багом оказалось, что сервис запросы от сервиса post выполняются более 3 сек.
+Это выяснилось при помощи zipkin
 </details>
