@@ -6,8 +6,7 @@ COPY requirements.txt /app
 RUN apk --no-cache add gcc=5.3.0-r0 musl-dev=1.1.14-r16 \
  && pip install -r /app/requirements.txt \
  && rm -rf /root/.cache \
- && rm -rf /app/requirements.txt \
- && apk --no-cache del gcc musl-dev
+ && rm -rf /app/requirements.txt
 
 COPY helpers.py post_app.py VERSION /app/
 
