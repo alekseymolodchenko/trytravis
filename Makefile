@@ -26,10 +26,10 @@ create-vm:
 	--google-open-port 5601/tcp \
 	--google-open-port 9292/tcp \
 	--google-open-port 9411/tcp \
-  --google-open-port 8080/tcp \
-  --google-open-port 9090/tcp \
-  --google-open-port 3000/tcp \
-  --google-open-port 9292/tcp \
+	--google-open-port 8080/tcp \
+	--google-open-port 9090/tcp \
+	--google-open-port 3000/tcp \
+	--google-open-port 9292/tcp \
 	--google-scopes "https://www.googleapis.com/auth/monitoring.read" \
 	--engine-opt experimental \
 	--engine-opt metrics-addr=0.0.0.0:9999 \
