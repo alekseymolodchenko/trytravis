@@ -4,7 +4,7 @@ VCS_URL := $(shell basename `git rev-parse --show-toplevel`)
 VCS_REF := $(shell git log -1 --pretty=%h)
 NAME := $(shell basename `git rev-parse --show-toplevel`)
 VENDOR := $(shell whoami)
-DOCKER_HOST := docker-host
+DOCKER_HOST := logging
 USER_NAME ?= $(shell echo $USER_NAME)
 
 .PHONY: all version docker-env build up-app up-down show-ip login push-app
@@ -23,6 +23,13 @@ create-vm:
 	--google-machine-image https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts \
 	--google-machine-type n1-standard-1 \
 	--google-zone europe-west1-b \
+	--google-open-port 5601/tcp \
+	--google-open-port 9292/tcp \
+	--google-open-port 9411/tcp \
+	--google-open-port 8080/tcp \
+	--google-open-port 9090/tcp \
+	--google-open-port 3000/tcp \
+	--google-open-port 9292/tcp \
 	--google-scopes "https://www.googleapis.com/auth/monitoring.read" \
 	--engine-opt experimental \
 	--engine-opt metrics-addr=0.0.0.0:9999 \
@@ -34,9 +41,10 @@ set-env:
 destroy-vm:
 	eval $$(docker-machine env $(DOCKER_HOST)) ; docker-machine rm ${DOCKER_MACHINE_NAME}
 
-build: build-app build-monitoring
+build: build-app build-monitoring build-logging
 build-app: build-ui build-post build-comment
 build-monitoring: build-prometheus build-mongodb-exporter build-blackbox-exporter build-alertmanager build-grafana build-telegraf build-trickster
+build-logging: build-fluentd
 
 build-ui:
 	eval $$(docker-machine env $(DOCKER_HOST)) ; docker build -t ${USER_NAME}/ui:${VERSION} -t ${USER_NAME}/ui:latest src/ui/
@@ -110,12 +118,22 @@ build-trickster:
 	--build-arg NAME="${NAME}" \
 	--build-arg VENDOR="${VENDOR}" monitoring/trickster
 
+build-fluentd:
+	eval $$(docker-machine env $(DOCKER_HOST)) ; docker build -t ${USER_NAME}/fluentd:${VERSION} -t ${USER_NAME}/fluentd:latest \
+	--build-arg VERSION="${VERSION}" \
+	--build-arg BUILD_DATE="${BUILD_DATE}" \
+	--build-arg VCS_URL="${VCS_URL}" \
+	--build-arg VCS_REF="${VCS_REF}" \
+	--build-arg NAME="${NAME}" \
+	--build-arg VENDOR="${VENDOR}" logging/fluentd
+
 login:
 	docker login -u ${USER_NAME}
 
-push: push-app push-monitoring
+push: push-app push-monitoring push-logging
 push-app: push-ui push-post push-comment
 push-monitoring: push-prometheus push-mongodb-exporter push-blackbox-exporter push-alertmanager push-grafana push-telegraf push-trickster
+push-logging: push-fluentd
 
 push-ui:
 	eval $$(docker-machine env $(DOCKER_HOST)) ; docker login -u ${USER_NAME} ; docker push ${USER_NAME}/ui:${VERSION} ; docker push ${USER_NAME}/ui:latest
@@ -156,6 +174,11 @@ up-monitoring:
 	eval $$(docker-machine env $(DOCKER_HOST)) ; cd docker/ ; docker-compose -f docker-compose-monitoring.yml up -d
 down-monitoring:
 	eval $$(docker-machine env $(DOCKER_HOST)) ; cd docker/ ; docker-compose -f docker-compose-monitoring.yml down
+
+up-logging:
+	eval $$(docker-machine env $(DOCKER_HOST)) ; cd docker/ ; docker-compose -f docker-compose-logging.yml up -d
+down-logging:
+	eval $$(docker-machine env $(DOCKER_HOST)) ; cd docker/ ; docker-compose -f docker-compose-logging.yml down
 
 show-ip:
 	@echo ${DOCKER_HOST} ip-address: $(shell docker-machine ip ${DOCKER_HOST})

@@ -12,12 +12,30 @@ services:
        - comment_db
   ui:
     image: ${USER_NAME}/ui:${UI_SERVICE_VERSION}
+    environment:
+      - ZIPKIN_ENABLED=${ZIPKIN_ENABLED}
     ports:
       - ${UI_SERVICE_PORT}:${UI_SERVICE_PORT}/tcp
     networks:
       - front_net
+    logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: localhost:24224
+        tag: service.ui
   post:
     image: ${USER_NAME}/post:${POST_SERVICE_VERSION}
+    depends_on:
+      - post_db
+    environment:
+      - ZIPKIN_ENABLED=${ZIPKIN_ENABLED}
+      - POST_DATABASE_HOST=post_db
+      - POST_DATABASE=posts
+    logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: localhost:24224
+        tag: service.post
     networks:
       back_net:
        aliases:
@@ -27,6 +45,12 @@ services:
        - comment
   comment:
     image: ${USER_NAME}/comment:${COMMENT_SERVICE_VERSION}
+    depends_on:
+      - post_db
+    environment:
+      - ZIPKIN_ENABLED=${ZIPKIN_ENABLED}
+      - COMMENT_DATABASE_HOST=comment_db
+      - COMMENT_DATABASE=comments
     networks:
       back_net:
        aliases:
