@@ -15,5 +15,9 @@ spec:
         app: comment
     spec:
       containers:
-      - image: amolodchenko/comment
-        name: comment
+      - name: comment
+        image: amolodchenko/comment
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"

@@ -1,5 +1,5 @@
 ---
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: post-deployment
@@ -15,5 +15,9 @@ spec:
         app: post
     spec:
       containers:
-      - image: ${USER_NAME}/post
-        name: post
+      - name: post
+        image: amolodchenko/post
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"

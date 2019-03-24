@@ -15,5 +15,9 @@ spec:
         app: mongo
     spec:
       containers:
-      - image: mongo
-        name: post_db
+      - name: postdb
+        image: mongo
+        resources:
+          limits:
+            memory: "256Mi"
+            cpu: "500m"

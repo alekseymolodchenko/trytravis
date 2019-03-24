@@ -15,5 +15,9 @@ spec:
         app: ui
     spec:
       containers:
-      - image: amolodchenko/ui
-        name: ui
+      - name: ui
+        image: amolodchenko/ui
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
