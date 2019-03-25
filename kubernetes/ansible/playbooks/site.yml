@@ -1,0 +1,7 @@
+---
+
+- import_playbook: k8s-kubectl.yml
+- import_playbook: k8s-ca.yml
+- import_playbook: k8s-etcd.yml
+- import_playbook: k8s-kubernetes-controller.yml
+- import_playbook: k8s-kubernetes-worker.yml

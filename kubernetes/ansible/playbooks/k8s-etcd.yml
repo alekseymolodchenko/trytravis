@@ -1,0 +1,6 @@
+---
+hosts: k8s_etcd
+roles:
+    -
+      role: etcd
+      tags: role-etcd

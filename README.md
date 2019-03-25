@@ -1363,8 +1363,6 @@ zipkin:
      aliases:
      - zipkin
 ```
-### Завершение работы
-* Образы запушены на [DockerHub](https://hub.docker.com/_/amolodchenko "DockerHub")
 
 ### Задание со *
 * Добавлен grok-шаблон
@@ -1373,7 +1371,35 @@ zipkin:
   pattern service=%{WORD:service} \| event=%{WORD:event} \| path=%{URIPATH:path} \| request_id=%{GREEDYDATA:request_id} \| remote_addr=%{IP:remote_addr} \| method= %{WORD:method} \| response_status=%{NUMBER:response_status}
 </grok>
 ```
-### Задание со **
+### Задание с **
 В развернутом приложени с багом оказалось, что сервис запросы от сервиса post выполняются более 3 сек.
 Это выяснилось при помощи zipkin
 </details>
+
+## HW #20 - Введение в Kubernetes
+
+<details>
+  <summary>Результаты</summary>
+
+### Создание примитивов
+
+* Созданы Deployment манифесты для сервисов ui/post/comment/mongodb
+
+### Kubernetes The Hard Way
+
+* Развернут кластер Kubernetes в GCP по The Hard Way
+* Проверка запущеных pods
+```
+$ kubectl get pods
+NAME                                  READY   STATUS    RESTARTS   AGE
+busybox-bd8fb7cbd-6k5pk               1/1     Running   2          127m
+comment-deployment-6ddc476c55-9wzgw   1/1     Running   0          27s
+mongo-deployment-8bc64ff88-7twlf      1/1     Running   0          35s
+nginx-dbddb74b8-wbxl8                 1/1     Running   0          77s
+post-deployment-747bf48fc-jvn4f       1/1     Running   0          17s
+ui-deployment-66979dd469-bdq7z        1/1     Running   0          22s
+```
+### Задание со *
+* Сделан бойлерплейт ansible-ролей для установки kubernetes The Hard Way
+</details>
+
