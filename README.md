@@ -1411,7 +1411,7 @@ ui-deployment-66979dd469-bdq7z        1/1     Running   0          22s
 
 ### Основное задание
 
-* В локальном окрущении развернут minicube
+* В локальном окружении развернут minicube
 
 ```
 $ minikube version
