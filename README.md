@@ -1403,3 +1403,58 @@ ui-deployment-66979dd469-bdq7z        1/1     Running   0          22s
 * Сделан бойлерплейт ansible-ролей для установки kubernetes The Hard Way
 </details>
 
+
+## HW #21 - Kubernetes. Запуск кластера и приложения. Модель безопасности.
+
+<details>
+  <summary>Результаты</summary>
+
+### Основное задание
+
+* В локальном окрущении развернут minicube
+
+```
+$ minikube version
+minikube version: v0.35.0
+```
+
+* Созданы deployments манифесты для mongodb/ui/comment/post
+
+* Созданы service манифесты для mongodb/ui/comment-db/post-db
+
+* Создан манифест для dev-namespace
+
+* В GCP накликан кластер gke_docker-1234920_europe-west2-a_standard-cluster-1
+
+* Приложение reddit развернуто в кластере gke_docker-1234920_europe-west2-a_standard-cluster-1
+![Image of Homework](https://i.imgur.com/PlPRTBM.png)
+
+
+* Включены Kubernetes Dashboards
+
+
+### Задание со *
+* Кластер Kubernetes теперь можно развернуть используя Terraform
+
+```
+cd kubernetes/terraform && terraform init && terraform apply -auto-approve
+```
+
+* Создан манифест для биндинга кластерной роли cluster-admin
+```
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kubernetes-dashboard
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: kubernetes-dashboard
+  namespace: kube-system
+
+```
+</details>
