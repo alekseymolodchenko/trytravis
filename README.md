@@ -1458,3 +1458,236 @@ subjects:
 
 ```
 </details>
+
+## HW #22 - Kubernetes. Networks ,Storages
+
+<details>
+  <summary>Результаты</summary>
+
+* LoadBalancer Service
+
+Добавлен LoadBalancer GCP предоставляющий единую точку
+входа в наши сервисы, для распределения нагрузки
+```
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ui
+  labels:
+    app: reddit
+    component: ui
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    nodePort: 32092
+    protocol: TCP
+    targetPort: 9292
+  selector:
+    app: reddit
+    component: ui
+```
+
+* Ingress Controller / Ingress / Secret / TLS
+
+Сгенерированы и загружены секреты
+
+```
+$ openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.crt -subj "/CN=35.244.210.8
+$ kubectl create secret tls ui-ingress --key tls.key --cert tls.crt -n dev
+```
+
+Проверим что получилось
+
+```
+$ kubectl describe secret ui-ingress -n dev
+Name:         ui-ingress
+Namespace:    dev
+Labels:       <none>
+Annotations:
+Type:         kubernetes.io/tls
+
+Data
+====
+tls.crt:  989 bytes
+tls.key:  1704 bytes
+```
+
+Добавлен Ingress c SSL терминированием для UI
+
+```
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ui
+  annotations:
+    kubernetes.io/ingress.allow-http: "false"
+spec:
+  tls:
+  - secretName: ui-ingress
+  backend:
+    serviceName: ui
+    servicePort: 9292
+```
+
+Проверим что получилось
+```
+$ kubectl get ingress -n dev
+NAME   HOSTS   ADDRESS        PORTS     AGE
+ui     *       35.244.210.8   80, 443   23h
+```
+
+
+* Network Policies
+Опишем Network Policies для mongo для доступа сервисов post и сomment
+
+```
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-db-traffic
+  labels:
+    app: reddit
+spec:
+  podSelector:
+    matchLabels:
+      app: reddit
+      component: mongo
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: reddit
+          component: comment
+    - podSelector:
+        matchLabels:
+          app: reddit
+          component: post
+```
+
+Проверим что получилось
+
+```
+$ kubectl describe networkpolicies -n dev
+Name:         deny-db-traffic
+Namespace:    dev
+Created on:   2019-03-31 23:29:03 +0300 MSK
+Labels:       app=reddit
+Annotations:  kubectl.kubernetes.io/last-applied-configuration:
+                {"apiVersion":"networking.k8s.io/v1","kind":"NetworkPolicy","metadata":{"annotations":{},"labels":{"app":"reddit"},"name":"deny-db-traffic...
+Spec:
+  PodSelector:     app=reddit,component=mongo
+  Allowing ingress traffic:
+    To Port: <any> (traffic allowed to all ports)
+    From:
+      PodSelector: app=reddit,component=comment
+    From:
+      PodSelector: app=reddit,component=post
+  Allowing egress traffic:
+    <none> (Selected pods are isolated for egress connectivity)
+  Policy Types: Ingress
+```
+
+* PersistentVolumes / PersistentVolumeClaims
+
+Создадим StorageClass Fast так, чтобы монтировались SSD-диски для работы нашего хранилища
+
+```
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1beta1
+metadata:
+  name: fast
+provisioner: kubernetes.io/gce-pd
+parameters:
+  type: pd-ssd
+```
+
+Добавим StorageClass в кластер
+
+```
+$ kubectl apply -f storage-fast.yml -n dev
+$ kubectl get StorageClass | grep fast
+NAME                 PROVISIONER            AGE
+fast                 kubernetes.io/gce-pd   1h
+```
+
+Создадим описание PersistentVolumeClaim mongo-claim-dynamic.yml
+
+```
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: mongo-pvc-dynamic
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: fast
+  resources:
+    requests:
+      storage: 10Gi
+```
+
+Подключим PVC к нашим Pod'ам
+
+```
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: mongo
+  labels:
+    app: reddit
+    component: mongo
+    post-db: "true"
+    comment-db: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reddit
+      component: mongo
+  template:
+    metadata:
+      name: mongo
+      labels:
+        app: reddit
+        component: mongo
+        post-db: "true"
+        comment-db: "true"
+    spec:
+      containers:
+      - image: mongo:3.2
+        name: mongo
+        volumeMounts:
+        - name: mongo-gce-pd-storage
+          mountPath: /data/db
+      volumes:
+      - name: mongo-gce-pd-storage
+        persistentVolumeClaim:
+          claimName: mongo-pvc-dynamic
+```
+
+* Задание со *
+
+Описание объекта Secret в виде манифеста
+```
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ui-ingress
+  namespace: dev
+type: kubernetes.io/tls
+data:
+  tls.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUNyRENDQVpRQ0NRQ3czNE1PWmtFZjFqQU5CZ2txaGtpRzl3MEJBUXNGQURBWU1SWXdGQVlEVlFRRERBMHoKTlM0eU1qY3VNakl4TGpjNE1CNFhEVEU1TURNek1URTVOVGN4TjFvWERUSXdNRE16TURFNU5UY3hOMW93R0RFVwpNQlFHQTFVRUF3d05NelV1TWpJM0xqSXlNUzQzT0RDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDCkFRb0NnZ0VCQU1YWEFsQmZ0RFJ1emYvNUs2d0xtaXpxblh6aW9KRHNqckhZbWxuN3JsMlB1RngvU3pNbjZUemMKSkt0WWQzcmpSYVhGZXNESGpvL2J4RlZEeUxudUxPU05JandYcmozbi81bEVSWDhiZjZDVTdSZnNDWGJZZGFFKwpYOHFlN0ZlMlY2aHRUOVNuVWhBSFRQOVhnTGpwNXRsa2dCMWFJM2JvQ25OUS9wQW5keVdyMVdmUHhpNXA2OHJFCnROd0tHSXllV3NxZU5hRlMrZHhqeUdsdFF3UUN6OWw5ZjVUN2szaDVwREpjK284bGFlb1Z2YUE2SWhTRnZGU20KS29qTWJjR3VaYjA5SkdHeUxXcEk5NC9SZzI2L2VGU1djbmpUbkFBS21rNlVJaDNjZmYwdE9KV1phMkxhc2tTUApjbXZSb0xvQ0dHNnRydG1EWHNNc2Jsa3ZqN2RBNnVrQ0F3RUFBVEFOQmdrcWhraUc5dzBCQVFzRkFBT0NBUUVBCnhMT2RRb1hvUmhsVDVhY0lyWHhFcko2TWFIeVZvQktlUGEyZHFLeEpCdzluc1dramFzeU53cGZEbHlwaTZ0emYKb056ajlFMnMwbWw1aGk5MTN1WTUrYUt1L09RbTBBbW5LbGhTTFpLTEZWQXQwWk5qZURjaEl2YkJFbEdtVSt6bwpvNE9xUXVEQWg3cGh2QlBnTng1YnNSMEY5SVptSkgrV2tSRXF6MWw2bko1b1JjQVNPdFhydjYyWWkvOEQxWXQyCkFocFBPMXBKMzhJeURZZitTa0RmeDZjaC9xUVFlNTVlUUJOWnlIWG1Ld21IVWZLRGQ5QllKMmE4eC9GdERKZmIKOWlVRGp1c3lDR0NsZGxQc3VaOW80QWJTZG1nQ05VOUNiNTJIZ3psR0lpQkpFLzRVWHU3Q04rek9YQUw0ZXd1Two4MkFTL243amRObW4xOTNva3VMZ1JBPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+  tls.key: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2Z0lCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQktnd2dnU2tBZ0VBQW9JQkFRREYxd0pRWDdRMGJzMy8KK1N1c0M1b3M2cDE4NHFDUTdJNngySnBaKzY1ZGo3aGNmMHN6SitrODNDU3JXSGQ2NDBXbHhYckF4NDZQMjhSVgpROGk1N2l6a2pTSThGNjQ5NS8rWlJFVi9HMytnbE8wWDdBbDIySFdoUGwvS251eFh0bGVvYlUvVXAxSVFCMHovClY0QzQ2ZWJaWklBZFdpTjI2QXB6VVA2UUozY2xxOVZuejhZdWFldkt4TFRjQ2hpTW5scktualdoVXZuY1k4aHAKYlVNRUFzL1pmWCtVKzVONGVhUXlYUHFQSlducUZiMmdPaUlVaGJ4VXBpcUl6RzNCcm1XOVBTUmhzaTFxU1BlUAowWU51djNoVWxuSjQwNXdBQ3BwT2xDSWQzSDM5TFRpVm1XdGkyckpFajNKcjBhQzZBaGh1cmE3WmcxN0RMRzVaCkw0KzNRT3JwQWdNQkFBRUNnZ0VBSmI4WUdlMm9uRGhuNVdiTkJrNVFaREYvU3N5U2hoUWNSYUptRUxVTVY1Mk0KTjFteUoxaCtEN2FRNklCQWk1bkJPQmV0akFxSEVMdUZnaDhrdFJUVVMrY0JtU1dMZ1JRNm1DdUdkdkh3TDlzNgpRVTR2b0JVOG5EOGlWNjVxdVhGNDJCSERJWGVyR0pQTUJRdlU2M0wxTUpVVVBJVnVMc21tOU1tSFNFbS9XZGhSCkZZQnMwT3ZPZWRWVWxDVEJxNTJUNSs2djhuWXFTUVB2N0drb09wOWpXUjJaVHJhSjU3VnRFMWJJYytHa0JMaFoKU0VqenVmL3Z2TFBDbExuakVWbElKTkFEcmRnblg4Z1ErcXpnaDJ2RDlLaG9oTi93eFFkZjhZbkN2aUNTTUFwcQpDdk5zbUhoQ25ybHFkcXJvQXBDVkpsZExsK0pweHAyOXJueGQ3OEhKWVFLQmdRRHduOGZpYXN0MGs1cG1uQ1VZCnF5NVMvY0VkS1VickVkTUU2U1RWNktNakxJdmdvSWVYRmJ5TmgrNDFnajdOOGdyNWQ1K000VTc1d3BCRnNoTWkKbVlEb1BnQkJiUGxlRDdpc0dKTVhYNUJJcnBwQTdERURpb3lxdmU5YjJsRW9DVlRLNnhWSVhqMURkYm1WRE1sdApPdTlDZkpxODVXVE1sMnJzQ2ljSzJSNGxNd0tCZ1FEU2UxanF4NG1EWWxQR3hGOFE2Q3NWNzl4eFljK0Y0YklvCk9TMU9acmxPMEtGUXZXeHdZaGpnRzl2R1RsOThqaVZYT2hWWFpFWnl0Z3dVMFk0TzBSNFFTaXJjSHVhUVMvOTkKc1VTK2hTL3ZtVWk5ZXNYYnJJV0lNa1JoTlkzekxST3RSUVVNQWc4SnhaU25KK08wSHhUNGh0MnNzREE1M2t0VQpob1BzbitiM2N3S0JnUURhV2pRWnE0MnE0UktZa0pNOU9vR1QvLzlSQmhiNzA3WG8yK1I0VkY1TjJldW8wQ09hCm43ZjF1dWNZR1hRQ2tPVVNrbEh2bHJtQy9lTEx6QmQvSzBzRjlOVm9pWW9VcURHTndkTWd2N0IvdENuNFJoMEkKT0o4RGhjNENUUytlSkRHVTNoVDNFY1dJUlBrK1gxY2R6d0ExRmp1WXRKVnU3dXl3KzFtSWg1UEtid0tCZ1FDVgpFbWRYWVJzendtQXpWc0U5NkRFYnlGWUl0NDJTOU5hSlJuV2dJWUQ5SVNZZldRbUVUdlh2UTh2VUY0M3BXWU40CjA5cHBtc3VLVXdVYmVZOXpUd2hMNFR1Wnl3amhDZkpadzBNODdIZVc2cWxxQ1pvNGkyZkhubEp2eHM1U2ZJcUQKSFc4Rm9pK2tiQnRzaUFQdGZsWUw3dmp4WlpmQ1pINVZ6eStBVjMvdG9RS0JnQWNaYVM1aGZpNFYvbGdvbzAvNQpraU1YWFNMdS9pYkIzU2Z3UEpuQWFHeHIrLy9LVUtabUNxSGl1MFFxY2pycDBldkI0Q1BVRjZxcnNsZ2dGM2h1CldLd1pyalRUMUJ3OUc0NGhOWHEvOGJiQUNVSXQxRU84TDhLSTZ4TG5CMUhjMDhja1JtYTVHR1VoK3NySHBjbGkKV2FhbUdLZlhOMkcxUDZTK1pBZm5kdUhHCi0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K
+
+```
+</details>
