@@ -1539,8 +1539,8 @@ NAME   HOSTS   ADDRESS        PORTS     AGE
 ui     *       35.244.210.8   80, 443   23h
 ```
 
-
 * Network Policies
+
 Опишем Network Policies для mongo для доступа сервисов post и сomment
 
 ```
