@@ -17,3 +17,5 @@ vault.key
 .pytest_cache
 gce_googleapiclient.ini
 .env
+tls.crt
+tls.key
