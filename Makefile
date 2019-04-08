@@ -6,6 +6,7 @@ NAME := $(shell basename `git rev-parse --show-toplevel`)
 VENDOR := $(shell whoami)
 DOCKER_HOST := logging
 USER_NAME ?= $(shell echo $USER_NAME)
+GCE_PROJECT ?= $(shell echo $GOOGLE_PROJECT)
 
 .PHONY: all version docker-env build up-app up-down show-ip login push-app
 all: create-vm build-app build-monitoring push-app push-monitoring up-app show-ip
@@ -182,3 +183,11 @@ down-logging:
 
 show-ip:
 	@echo ${DOCKER_HOST} ip-address: $(shell docker-machine ip ${DOCKER_HOST})
+
+k8s-cluster-run:
+	cd kubernetes/terraform && terraform get && terraform init && terraform apply -auto-approve=true
+	cloud container clusters get-credentials k8s-cluster --zone europe-west6-a --project $(GCE_PROJECT)
+	kubectl apply -f reddit/tiller.yml
+
+k8s-cluster-destroy:
+	cd kubernetes/terraform && terraform destroy -auto-approve=true
