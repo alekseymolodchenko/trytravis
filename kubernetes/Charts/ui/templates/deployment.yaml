@@ -2,7 +2,7 @@
 apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
-  name: {{ .Release.Name }}-{{ .Chart.Name }}
+  name: {{ template "ui.fullname" . }}
   labels:
     app: reddit
     component: ui
@@ -18,7 +18,7 @@ spec:
       release: {{ .Release.Name }}
   template:
     metadata:
-      name: ui
+      name: {{ template "ui.fullname" . }}
       labels:
         app: reddit
         component: ui
@@ -26,10 +26,10 @@ spec:
     spec:
       containers:
       - image:  "{{ .Values.image.repository }}/ui:{{ .Values.image.tag }}"
-        name: ui
+        name: {{ template "ui.fullname" . }}
         ports:
         - containerPort: {{ .Values.service.internalPort }}
-          name: ui
+          name: {{ template "ui.fullname" . }}
           protocol: TCP
         env:
         - name: ENV
