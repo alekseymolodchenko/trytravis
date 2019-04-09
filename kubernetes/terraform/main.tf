@@ -1,7 +1,7 @@
 resource "google_container_cluster" "primary" {
   name    = "${var.k8s_cluster_name}"
   project = "${var.project}"
-  zone    = "${var.zone}"
+  location    = "${var.location}"
 
   # We can't create a cluster with no node pool defined, but we want to only use
   # separately managed node pools. So we create the smallest possible default
@@ -9,11 +9,15 @@ resource "google_container_cluster" "primary" {
   remove_default_node_pool = true
 
   initial_node_count = "${var.k8s_initial_node_count}"
+
+  provisioner "local-exec" {
+    command = "gcloud container clusters get-credentials ${var.k8s_cluster_name} --zone ${var.zone} --project ${var.project}"
+  }
 }
 
 resource "google_container_node_pool" "primary_preemptible_nodes" {
   name = "${var.k8s_node_pool_name}"
-
+  location    = "${var.location}"
   project    = "${var.project}"
   cluster    = "${google_container_cluster.primary.name}"
   node_count = "${var.k8s_node_pool_cont}"

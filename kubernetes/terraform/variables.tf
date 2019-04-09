@@ -2,8 +2,8 @@ variable project {
   description = "Project ID"
 }
 
-variable zone {
-  description = "Zone"
+variable location {
+  description = "Locations"
   default     = "europe-west6-a"
 }
 
@@ -17,7 +17,7 @@ variable "k8s_node_pool_name" {
 
 variable "k8s_node_machine_type" {
   description = "Node machine type"
-  default     = "n1-standard-1"
+  default     = "g1-small"
 }
 
 variable "k8s_initial_node_count" {
@@ -27,5 +27,5 @@ variable "k8s_initial_node_count" {
 
 variable "k8s_node_pool_cont" {
   description = "Cluster node pool count"
-  default     = 2
+  default     = 3
 }
