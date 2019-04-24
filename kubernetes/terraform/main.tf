@@ -11,7 +11,7 @@ resource "google_container_cluster" "primary" {
   initial_node_count = "${var.k8s_initial_node_count}"
 
   provisioner "local-exec" {
-    command = "gcloud container clusters get-credentials ${var.k8s_cluster_name} --zone ${var.zone} --project ${var.project}"
+    command = "gcloud container clusters get-credentials ${var.k8s_cluster_name} --zone ${var.location} --project ${var.project}"
   }
 }
 
