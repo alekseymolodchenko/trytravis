@@ -185,9 +185,9 @@ show-ip:
 	@echo ${DOCKER_HOST} ip-address: $(shell docker-machine ip ${DOCKER_HOST})
 
 k8s-cluster-run:
-	cd kubernetes/terraform && terraform get && terraform init && terraform apply -auto-approve=true
-	cloud container clusters get-credentials k8s-cluster --zone europe-west6-a --project $(GCE_PROJECT)
-	kubectl apply -f reddit/tiller.yml
+	cd kubernetes/terraform ; terraform get && terraform init && terraform apply -auto-approve=true
+	kubectl apply -f kubernetes/reddit/tiller.yml
+	helm init --service-account tiller
 
 k8s-cluster-destroy:
-	cd kubernetes/terraform && terraform destroy -auto-approve=true
+	cd kubernetes/terraform ; terraform destroy -auto-approve=true
