@@ -6,5 +6,5 @@ service:
   protocol: TCP
 
 image:
-  repository: amolodchenko
+  repository: amolodchenko/ui
   tag: latest
