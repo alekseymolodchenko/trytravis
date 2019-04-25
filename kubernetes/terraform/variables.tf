@@ -17,7 +17,7 @@ variable "k8s_node_pool_name" {
 
 variable "k8s_node_machine_type" {
   description = "Node machine type"
-  default     = "g1-small"
+  default     = "n1-standard-2"
 }
 
 variable "k8s_initial_node_count" {
