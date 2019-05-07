@@ -19,3 +19,5 @@ gce_googleapiclient.ini
 .env
 tls.crt
 tls.key
+kubernetes/gitlab_ci/*
+*.tgz
