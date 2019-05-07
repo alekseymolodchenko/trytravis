@@ -1691,3 +1691,151 @@ data:
 
 ```
 </details>
+
+## HW #23 - CI/CD в Kubernetes
+
+### Helm
+
+- Добавлен манифест для `tiller`
+- Развёрнуто приложение `ui`
+
+   <details><summary>Подробнее</summary><p>
+
+  ```bash
+
+  $ helm install --name test-ui-1 ui/
+  NAME:   test-ui-1
+  LAST DEPLOYED: Mon May  6 23:32:15 2019
+  NAMESPACE: default
+  STATUS: DEPLOYED
+
+  RESOURCES:
+  ==> v1/Pod(related)
+  NAME                           READY  STATUS             RESTARTS  AGE
+  test-ui-1-ui-74bcfbfd9b-4n9pl  0/1    ContainerCreating  0         0s
+  test-ui-1-ui-74bcfbfd9b-rbvlp  0/1    ContainerCreating  0         0s
+  test-ui-1-ui-74bcfbfd9b-rbvqx  0/1    ContainerCreating  0         0s
+
+  ==> v1/Service
+  NAME          TYPE      CLUSTER-IP     EXTERNAL-IP  PORT(S)         AGE
+  test-ui-1-ui  NodePort  10.59.246.194  <none>       9292:30480/TCP  1s
+
+  ==> v1beta1/Deployment
+  NAME          READY  UP-TO-DATE  AVAILABLE  AGE
+  test-ui-1-ui  0/3    3           0          1s
+
+  ==> v1beta1/Ingress
+  NAME          HOSTS  ADDRESS  PORTS  AGE
+  test-ui-1-ui  *      80       0s
+
+  $ helm ls
+    NAME            REVISION        UPDATED                         STATUS          CHART           APP VERSION     NAMESPACE
+  test-ui-1       1               Mon May  6 23:32:15 2019        DEPLOYED        ui-1.0.0        1               default
+
+  ```
+
+  </p></details>
+
+- Добавлены шаблоны манифестов для `ui`. Запущено несколько версий `ui`
+   <details><summary>Подробнее</summary><p>
+
+  ```bash
+  $ helm install ui --name ui-1
+  $ helm install ui --name ui-2
+  $ helm install ui --name ui-3
+
+  $ helm ls
+  NAME            REVISION        UPDATED                         STATUS          CHART           APP VERSION     NAMESPACE
+  test-ui-1       1               Mon May  6 23:32:15 2019        DEPLOYED        ui-1.0.0        1               default
+  ui-1            1               Mon May  6 23:27:24 2019        DEPLOYED        ui-1.0.0        1               default
+  ui-2            1               Mon May  6 23:27:27 2019        DEPLOYED        ui-1.0.0        1               default
+  ui-3            1               Mon May  6 23:27:31 2019        DEPLOYED        ui-1.0.0        1               default
+  ```
+
+  </p></details>
+
+- Добавлены шаблоны для серсисов post и comment
+- Создан Chart для `reddit` приложения
+
+<details><summary>Проверка</summary><p>
+
+  ```bash
+  $ helm install reddit --name test
+  NAME:   test
+  LAST DEPLOYED: Mon May  6 23:49:35 2019
+  NAMESPACE: default
+  STATUS: DEPLOYED
+
+  RESOURCES:
+  ==> v1/PersistentVolumeClaim
+  NAME          STATUS   VOLUME    CAPACITY  ACCESS MODES  STORAGECLASS  AGE
+  test-mongodb  Pending  standard  1s
+
+  ==> v1/Pod(related)
+  NAME                           READY  STATUS             RESTARTS  AGE
+  test-comment-8585dc98d4-mdkvz  0/1    ContainerCreating  0         1s
+  test-mongodb-67f45979db-2ks8n  0/1    Pending            0         1s
+  test-post-5f8b977667-8wcpj     0/1    ContainerCreating  0         1s
+  test-ui-5c44b5b48d-26gz9       0/1    ContainerCreating  0         1s
+  test-ui-5c44b5b48d-l8q5w       0/1    ContainerCreating  0         1s
+  test-ui-5c44b5b48d-qmz6f       0/1    ContainerCreating  0         1s
+
+  ==> v1/Secret
+  NAME          TYPE    DATA  AGE
+  test-mongodb  Opaque  2     1s
+
+  ==> v1/Service
+  NAME          TYPE       CLUSTER-IP     EXTERNAL-IP  PORT(S)         AGE
+  test-comment  ClusterIP  10.59.247.67   <none>       9292/TCP        1s
+  test-mongodb  ClusterIP  10.59.244.195  <none>       27017/TCP       1s
+  test-post     ClusterIP  10.59.253.39   <none>       5000/TCP        1s
+  test-ui       NodePort   10.59.245.131  <none>       9292:30810/TCP  1s
+
+  ==> v1beta1/Deployment
+  NAME          READY  UP-TO-DATE  AVAILABLE  AGE
+  test-mongodb  0/1    1           0          1s
+  test-ui       0/3    3           0          1s
+
+  ==> v1beta1/Ingress
+  NAME     HOSTS  ADDRESS  PORTS  AGE
+  test-ui  *      80       1s
+
+  ==> v1beta2/Deployment
+  NAME          READY  UP-TO-DATE  AVAILABLE  AGE
+  test-comment  0/1    1           0          1s
+  test-post     0/1    1           0          1s
+  ```
+
+  </p></details>
+
+### GitLab + Kubernetes
+
+- Добавлен [Helm chart](https://helm.sh/) `gitlab/gitlab-omnibus` и запущен в кластере
+- Добавлена группа `amolodchenko`
+- Добавлены проекты `ui`, `post`, `comment` и `reddit-deploy`
+- Добавлен `.gitlab-ci.yml` в проекты `ui`, `post`, `comment`
+- Реализован деплой приложения во временное окрущения после коммита в feature-ветку
+- Выполнен деплой на ```staging``` и ```production```
+
+### Задание *
+
+- Для связи пейпланойв сборки и деплоя на staging и production используется функционал [Pipeline triggers](https://gitlab.com/help/ci/triggers/README)
+- Для этого требуется добавить триггер в проект `reddit-deploy`, в проектах `ui`, `post`, `comment` в `.gitlab-ci.yml` добавить код вызова триггера
+
+  <details><summary>Вызов триггера</summary><p>
+
+  ```bash
+
+  deploy:
+    stage: deploy
+    script:
+      - apk add curl
+      - curl -X POST -F "token=$CI_AUTODEPLOY_TRIGGER_TOKEN" -F ref=master http://gitlab-gitlab/api/v4/projects/1/trigger/pipeline
+    only:
+      refs:
+        - master
+      kubernetes: active
+
+  ```
+
+  </p></details>

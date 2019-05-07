@@ -184,14 +184,26 @@ down-logging:
 show-ip:
 	@echo ${DOCKER_HOST} ip-address: $(shell docker-machine ip ${DOCKER_HOST})
 
-k8s-cluster-run:
-	cd kubernetes/terraform ; terraform get && terraform init && terraform apply -auto-approve=true
+install-tiller:
+ifeq ($(shell kubectl get pods -n kube-system | grep -Ec "tiller.*Running"), 0)
+	@echo ">> Creating tiller service account"
 	kubectl apply -f kubernetes/reddit/tiller.yml
 	helm init --service-account tiller
+else
+	@echo ">> Tiller exits"
+endif
+
+k8s-cluster-run:
+	cd kubernetes/terraform && terraform get && terraform init && terraform apply -auto-approve=true
 
 k8s-cluster-destroy:
-	cd kubernetes/terraform ; terraform destroy -auto-approve=true
+	cd kubernetes/terraform && terraform destroy -auto-approve=true
 
-k8s-deploy-app:
-	cd kubernetes/Charts/reddit ; helm dep update
-	cd kubernetes/Charts ; helm install reddit --name reddit
+k8s-deploy-app: install-tiller
+	@echo ">> Deploying Reddit application to Production"
+	cd kubernetes/Charts/reddit && helm dep update
+	cd kubernetes/Charts && helm upgrade prod reddit --install --namespace production
+
+k8s-deploy-gitlab: install-tiller
+	@echo ">> Deploying GitLab CE ..."
+	cd kubernetes/Charts/gitlab-omnibus && helm install --name gitlab . -f values.yaml
