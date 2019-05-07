@@ -1,6 +1,10 @@
-project = "docker-12345678"
-zone = "europe-west6-a"
+project = "project-123456789"
+region = "europe-west4"
+zone = "europe-west4-b"
 k8s_cluster_name = "k8s-cluster"
 k8s_node_count = 3
 k8s_node_pool_name = "k8s-node-pool"
 k8s_node_machine_type = "n1-standard-1"
+k8s_node_disk_size = "30"
+source_ranges = ["0.0.0.0/0"]
+env = "production"
