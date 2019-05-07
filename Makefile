@@ -193,5 +193,6 @@ k8s-cluster-destroy:
 	cd kubernetes/terraform ; terraform destroy -auto-approve=true
 
 k8s-deploy-app:
+	helm init
 	cd kubernetes/Charts/reddit ; helm dep update
 	cd kubernetes/Charts ; helm install reddit --name reddit
