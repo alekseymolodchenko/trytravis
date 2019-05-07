@@ -2,9 +2,15 @@
 service:
   internalPort: 9292
   externalPort: 9292
-  component: ui
-  protocol: TCP
 
 image:
   repository: amolodchenko/ui
   tag: latest
+
+ingress:
+  class: nginx
+
+postHost:
+postPort:
+commentHost:
+commentPort:
