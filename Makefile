@@ -207,3 +207,8 @@ k8s-deploy-app: install-tiller
 k8s-deploy-gitlab: install-tiller
 	@echo ">> Deploying GitLab CE ..."
 	cd kubernetes/Charts/gitlab-omnibus && helm install --name gitlab . -f values.yaml
+
+k8s-install-nginx-ingress: install-tiller
+	@echo ">> Deploying Nginx Ingress ..."
+	helm install stable/nginx-ingress --name nginx
+
