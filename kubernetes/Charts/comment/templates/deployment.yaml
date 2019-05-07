@@ -27,7 +27,7 @@ spec:
         name: {{ template "comment.fullname" . }}
         ports:
         - containerPort: {{ .Values.service.internalPort }}
-          name: {{ template "comment.fullname" . }}
+          name: comment
           protocol: TCP
         env:
         - name: COMMENT_DATABASE_HOST
