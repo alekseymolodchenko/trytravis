@@ -6,6 +6,7 @@ NAME := $(shell basename `git rev-parse --show-toplevel`)
 VENDOR := $(shell whoami)
 DOCKER_HOST := logging
 USER_NAME ?= $(shell echo $USER_NAME)
+GCE_PROJECT ?= $(shell echo $GOOGLE_PROJECT)
 
 .PHONY: all version docker-env build up-app up-down show-ip login push-app
 all: create-vm build-app build-monitoring push-app push-monitoring up-app show-ip
@@ -182,3 +183,27 @@ down-logging:
 
 show-ip:
 	@echo ${DOCKER_HOST} ip-address: $(shell docker-machine ip ${DOCKER_HOST})
+
+install-tiller:
+ifeq ($(shell kubectl get pods -n kube-system | grep -Ec "tiller.*Running"), 0)
+	@echo ">> Creating tiller service account"
+	kubectl apply -f kubernetes/reddit/tiller.yml
+	helm init --service-account tiller
+else
+	@echo ">> Tiller exits"
+endif
+
+k8s-cluster-run:
+	cd kubernetes/terraform && terraform get && terraform init && terraform apply -auto-approve=true
+
+k8s-cluster-destroy:
+	cd kubernetes/terraform && terraform destroy -auto-approve=true
+
+k8s-deploy-app: install-tiller
+	@echo ">> Deploying Reddit application to Production"
+	cd kubernetes/Charts/reddit && helm dep update
+	cd kubernetes/Charts && helm upgrade prod reddit --install --namespace production
+
+k8s-deploy-gitlab: install-tiller
+	@echo ">> Deploying GitLab CE ..."
+	cd kubernetes/Charts/gitlab-omnibus && helm install --name gitlab . -f values.yaml
