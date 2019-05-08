@@ -589,7 +589,28 @@ alertmanagerFiles:
 ## Prometheus server ConfigMap entries
 ##
 serverFiles:
-  alerts: {}
+  alerts:
+    groups:
+      - name: kubernetes-absent
+        rules:
+          - alert: KubeAPIDown
+            annotations:
+              description: Prometheus can't find a kube-apiserver target to scrape.
+              summary: No Kube API server pod exists
+            expr: |
+              absent(up{job="kubernetes-apiservers"} == 1)
+            for: 5m
+            labels:
+              severity:
+          - alert: KubeNodeDown
+            annotations:
+              description: "{{$labels.instance}} in zone {{$labels.failure_domain_beta_kubernetes_io_zone}} has been down for more than 2 minutes."
+              summary: "Instance {{$labels.instance}} is down."
+            expr: |
+              absent(up{job="kubernetes-nodes"} == 1)
+            for: 2m
+            labels:
+              severity: critical
   rules: {}
 
   prometheus.yml:
